@@ -135,6 +135,10 @@ input[type=range]{width:100%;accent-color:var(--orange)}
 .day.has i{border:1px solid var(--blue);background:var(--blue-l)}
 .day.sel i{outline:2px solid var(--orange);outline-offset:2px}
 .day.sel{color:var(--orange)}
+.mi{width:26px;height:26px;display:block;margin:0 auto;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.mood b{height:26px;margin-bottom:.4rem}
+.day i .mi{width:18px;height:18px}
+.muted .mi{display:inline-block;width:16px;height:16px;vertical-align:-3px;margin:0}
 </style>
 </head>
 <body>
@@ -492,7 +496,13 @@ function go(id){
 }
 
 /* ---------- MOOD TRACKER ---------- */
-const MOOD_ICONS=['☀','◐','☁','≈','◌'];
+const MOOD_ICONS=[
+ `<svg viewBox="0 0 24 24" class="mi"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6L17 7M7 17l-1.4 1.4"/></svg>`,
+ `<svg viewBox="0 0 24 24" class="mi"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 010 16z" fill="currentColor"/></svg>`,
+ `<svg viewBox="0 0 24 24" class="mi"><path d="M7 18a4 4 0 01-.5-7.97A5.5 5.5 0 0117 9.5 4.25 4.25 0 0117 18z"/></svg>`,
+ `<svg viewBox="0 0 24 24" class="mi"><path d="M3 9c2-2 4-2 6 0s4 2 6 0 4-2 6 0M3 15c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/></svg>`,
+ `<svg viewBox="0 0 24 24" class="mi"><path d="M12 12m-1 0a1 1 0 102 0 1 1 0 10-2 0M12 12m-4.5 0a4.5 4.5 0 109 0 4.5 4.5 0 10-9 0M12 12m-8.5 0a8.5 8.5 0 1017 0 8.5 8.5 0 10-17 0" stroke-dasharray="1 3"/></svg>`
+];
 const dkey=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 let selDay=dkey(new Date());
 function renderMoods(){
