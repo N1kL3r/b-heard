@@ -146,6 +146,9 @@ input[type=range]{width:100%;accent-color:var(--orange)}
   .mood:nth-child(4){grid-column:2/4}
   .mood:nth-child(5){grid-column:4/6}
 }
+.trnote{font-size:.8rem;color:var(--blue-d);background:var(--blue-l);border-radius:var(--r) var(--r) 0 0;padding:.5rem 1rem}
+.trmeta{font-size:.72rem;opacity:.8;margin-top:.2rem}
+.trmeta button{background:none;border:0;padding:0;font-size:inherit;color:inherit;text-decoration:underline;cursor:pointer}
 </style>
 </head>
 <body>
@@ -222,6 +225,7 @@ input[type=range]{width:100%;accent-color:var(--orange)}
   <div class="chatbox">
     <div class="groups" id="groups"></div>
     <div class="card" style="padding:0">
+      <div class="trnote" id="trNote"></div>
       <div class="msgs" id="msgs"></div>
       <div class="send" style="padding:0 1rem 1rem"><input type="text" id="chatIn" data-ph="chatPh"><button class="btn" id="chatSend" data-i="send"></button></div>
     </div>
@@ -251,188 +255,194 @@ const $=s=>document.querySelector(s), el=(h)=>{const d=document.createElement('d
 const store={get:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}},set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 
 /* ---------- I18N ---------- */
-// order: en, da, ar, tr, pl
-const LANGS=[['en','English','en-GB'],['da','Dansk','da-DK'],['ar','العربية','ar'],['tr','Türkçe','tr-TR'],['pl','Polski','pl-PL']];
+// order: en, da, de, sv, pl
+const LANGS=[['en','English','en-GB'],['da','Dansk','da-DK'],['de','Deutsch','de-DE'],['sv','Svenska','sv-SE'],['pl','Polski','pl-PL']];
 const D={
-loginH:[`You'll be taken seriously here.`,`Her bliver du taget alvorligt.`,`هنا يُؤخذ كلامكِ على محمل الجد.`,`Burada ciddiye alınırsın.`,`Tutaj traktujemy cię poważnie.`],
-loginSub:[`Knowledge, experiences and doctors women trust – all in one place.`,`Viden, erfaringer og læger, som kvinder stoler på – samlet ét sted.`,`المعرفة والتجارب والأطباء الذين تثق بهم النساء – في مكان واحد.`,`Bilgi, deneyimler ve kadınların güvendiği doktorlar – tek bir yerde.`,`Wiedza, doświadczenia i lekarze, którym ufają kobiety – w jednym miejscu.`],
-cprLabel:[`CPR number`,`CPR-nummer`,`رقم CPR`,`CPR numarası`,`Numer CPR`],
-cprBad:[`Please enter a valid CPR number (DDMMYY-XXXX).`,`Indtast et gyldigt CPR-nummer (DDMMÅÅ-XXXX).`,`يرجى إدخال رقم CPR صالح (DDMMYY-XXXX).`,`Lütfen geçerli bir CPR numarası girin (GGAAYY-XXXX).`,`Wpisz prawidłowy numer CPR (DDMMRR-XXXX).`],
-cprConsent:[`Please agree to the data processing.`,`Accepter venligst databehandlingen.`,`يرجى الموافقة على معالجة البيانات.`,`Lütfen veri işlemeyi kabul edin.`,`Zaakceptuj przetwarzanie danych.`],
-consent:[`I agree to the processing of my data. My CPR number is never stored in plain text and never visible to others.`,`Jeg accepterer behandlingen af mine data. Mit CPR-nummer gemmes aldrig i klartekst og er aldrig synligt for andre.`,`أوافق على معالجة بياناتي. لا يتم حفظ رقم CPR الخاص بي كنص واضح ولا يظهر للآخرين أبدًا.`,`Verilerimin işlenmesini kabul ediyorum. CPR numaram asla açık metin olarak saklanmaz ve başkalarına görünmez.`,`Wyrażam zgodę na przetwarzanie moich danych. Mój numer CPR nigdy nie jest przechowywany jawnym tekstem ani widoczny dla innych.`],
-login:[`Log in`,`Log ind`,`تسجيل الدخول`,`Giriş yap`,`Zaloguj się`],
-proto:[`Prototype: no real check against the CPR register takes place.`,`Prototype: Der sker ingen reel kontrol mod CPR-registret.`,`نموذج أولي: لا يتم أي تحقق فعلي من سجل CPR.`,`Prototip: CPR kayıt sistemiyle gerçek bir doğrulama yapılmaz.`,`Prototyp: nie ma prawdziwej weryfikacji w rejestrze CPR.`],
-nav_home:[`Home`,`Hjem`,`الرئيسية`,`Ana sayfa`,`Start`],
-nav_know:[`Knowledge`,`Viden`,`المعرفة`,`Bilgi`,`Wiedza`],
-nav_prep:[`Prepare`,`Forbered`,`التحضير`,`Hazırlık`,`Przygotuj`],
-nav_map:[`Map`,`Kort`,`الخريطة`,`Harita`,`Mapa`],
-nav_chat:[`Community`,`Fællesskab`,`المجتمع`,`Topluluk`,`Społeczność`],
-nav_doc:[`Dr. Support`,`Lægehjælp`,`دعم الأطباء`,`Doktor desteği`,`Wsparcie lekarzy`],
-g_morning:[`Good morning`,`Godmorgen`,`صباح الخير`,`Günaydın`,`Dzień dobry`],
-g_day:[`Hello`,`Hej`,`مرحبًا`,`Merhaba`,`Cześć`],
-g_eve:[`Good evening`,`Godaften`,`مساء الخير`,`İyi akşamlar`,`Dobry wieczór`],
-howAre:[`We're glad you're here. How are you feeling today?`,`Dejligt, at du er her. Hvordan har du det i dag?`,`يسعدنا وجودكِ هنا. كيف حالكِ اليوم؟`,`Burada olmana sevindik. Bugün nasıl hissediyorsun?`,`Miło, że jesteś. Jak się dzisiaj czujesz?`],
-whereTo:[`Where would you like to go?`,`Hvor vil du hen?`,`إلى أين تودّين الذهاب؟`,`Nereye gitmek istersin?`,`Dokąd chcesz przejść?`],
-m1:[`Good`,`Godt`,`بخير`,`İyi`,`Dobrze`],
-m2:[`Okay`,`Okay`,`عادي`,`İdare eder`,`Tak sobie`],
-m3:[`Tired`,`Træt`,`متعبة`,`Yorgun`,`Zmęczona`],
-m4:[`In pain`,`Smerter`,`ألم`,`Ağrılı`,`Ból`],
-m5:[`Overwhelmed`,`Overvældet`,`مرهقة`,`Bunalmış`,`Przytłoczona`],
-trackTitle:[`Your past week`,`Din seneste uge`,`أسبوعكِ الماضي`,`Geçen haftan`,`Twój ostatni tydzień`],
-trackMostly:[`Most often this week:`,`Oftest denne uge:`,`الأكثر تكرارًا هذا الأسبوع:`,`Bu hafta en sık:`,`Najczęściej w tym tygodniu:`],
-trackHint:[`Tap a day, then an icon, to log or change how you felt.`,`Tryk på en dag og derefter et ikon for at notere eller ændre, hvordan du havde det.`,`اضغطي على يوم ثم على أيقونة لتسجيل شعورك أو تغييره.`,`Bir güne, sonra bir simgeye dokunarak nasıl hissettiğini kaydet veya değiştir.`,`Dotknij dnia, potem ikony, aby zapisać lub zmienić samopoczucie.`],
-trackToday:[`Today`,`I dag`,`اليوم`,`Bugün`,`Dziś`],
-r1:[`Lovely to hear. Take that energy with you.`,`Dejligt at høre. Tag den energi med dig.`,`جميل أن أسمع ذلك. خذي هذه الطاقة معكِ.`,`Bunu duymak güzel. Bu enerjiyi yanında taşı.`,`Miło to słyszeć. Zabierz tę energię ze sobą.`],
-r2:[`Okay is okay. See if something small could do you good today.`,`Okay er okay. Se om noget småt kunne gøre dig godt i dag.`,`«عادي» لا بأس به. جرّبي شيئًا بسيطًا يريحكِ اليوم.`,`İdare eder de olur. Bugün sana iyi gelecek küçük bir şey bul.`,`„Tak sobie” też jest w porządku. Zrób dziś coś małego dla siebie.`],
-r3:[`Tiredness is a real signal. Feel free to note it down for your next appointment.`,`Træthed er et ægte signal. Skriv den gerne ned til din næste aftale.`,`التعب إشارة حقيقية. دوّنيه لموعدكِ القادم.`,`Yorgunluk gerçek bir işarettir. Bir sonraki randevun için not al.`,`Zmęczenie to realny sygnał. Zanotuj je przed kolejną wizytą.`],
-r4:[`I'm sorry. You can record your symptoms under “Prepare” – or talk about it in the community.`,`Det er jeg ked af. Du kan notere dine symptomer under “Forbered” – eller tale om det i fællesskabet.`,`أنا آسف لذلك. يمكنكِ تسجيل أعراضكِ في «التحضير» أو التحدث عنها في المجتمع.`,`Üzgünüm. Belirtilerini “Hazırlık” bölümüne kaydedebilir veya toplulukta paylaşabilirsin.`,`Przykro mi. Możesz zapisać objawy w „Przygotuj” albo porozmawiać o nich we wspólnocie.`],
-r5:[`You don't have to carry it all alone. People are here for you in the community and at Dr. Support.`,`Du behøver ikke bære det hele alene. Der er mennesker til stede for dig i fællesskabet og hos Lægehjælp.`,`ليس عليكِ أن تحملي كل شيء وحدكِ. هناك أشخاص من أجلكِ في المجتمع وفي دعم الأطباء.`,`Her şeyi tek başına taşımak zorunda değilsin. Toplulukta ve Doktor desteğinde insanlar yanında.`,`Nie musisz dźwigać wszystkiego sama. We wspólnocie i we wsparciu lekarzy są ludzie dla ciebie.`],
-t_know:[`Current research, explained briefly`,`Aktuel forskning, kort forklaret`,`أحدث الأبحاث بشرح موجز`,`Güncel araştırmalar, kısaca anlatıldı`,`Aktualne badania w skrócie`],
-t_prep:[`Describe your symptoms clearly`,`Beskriv dine symptomer tydeligt`,`صِفي أعراضكِ بوضوح`,`Belirtilerini net anlat`,`Opisz objawy jasno`],
-t_map:[`Recommendations from women`,`Anbefalinger fra kvinder`,`توصيات من نساء`,`Kadınlardan öneriler`,`Rekomendacje od kobiet`],
-t_chat:[`Exchange by topic`,`Udveksling efter emne`,`تبادل حسب الموضوع`,`Konuya göre paylaşım`,`Rozmowy według tematu`],
-t_doc:[`Professionals, also after hours`,`Fagfolk, også uden for åbningstid`,`مختصون حتى خارج أوقات الدوام`,`Mesai dışında da uzmanlar`,`Specjaliści także po godzinach`],
-t_prepName:[`Prepare a doctor's visit`,`Forbered lægebesøg`,`التحضير لزيارة الطبيب`,`Doktor ziyaretine hazırlan`,`Przygotuj wizytę u lekarza`],
-knowLead:[`Reviewed research on women's health – with an easy summary for each topic.`,`Gennemgået forskning i kvinders sundhed – med et letforståeligt resumé for hvert emne.`,`أبحاث مُراجَعة حول صحة المرأة – مع ملخص سهل لكل موضوع.`,`Kadın sağlığına dair gözden geçirilmiş araştırmalar – her konu için anlaşılır bir özet.`,`Zweryfikowane badania o zdrowiu kobiet – z przystępnym podsumowaniem każdego tematu.`],
-overview:[`Overview`,`Overblik`,`نظرة عامة`,`Genel bakış`,`Przegląd`],
-studies:[`Reviewed studies`,`Gennemgåede studier`,`دراسات مُراجَعة`,`İncelenmiş çalışmalar`,`Zweryfikowane badania`],
-verified:[`✓ reviewed`,`✓ gennemgået`,`✓ مُراجَع`,`✓ incelendi`,`✓ zweryfikowane`],
-ex:[`Sample study:`,`Eksempelstudie:`,`دراسة مثال:`,`Örnek çalışma:`,`Przykładowe badanie:`],
-ty_review:[`Systematic review`,`Systematisk review`,`مراجعة منهجية`,`Sistematik derleme`,`Przegląd systematyczny`],
-ty_cohort:[`Cohort study`,`Kohortestudie`,`دراسة أترابية`,`Kohort çalışması`,`Badanie kohortowe`],
-ty_rct:[`Randomised trial`,`Randomiseret forsøg`,`تجربة عشوائية`,`Randomize çalışma`,`Badanie randomizowane`],
-ty_guide:[`Guideline`,`Retningslinje`,`إرشادات سريرية`,`Kılavuz`,`Wytyczne`],
-ty_meta:[`Meta-analysis`,`Metaanalyse`,`تحليل تلوي`,`Meta-analiz`,`Metaanaliza`],
-ty_cross:[`Cross-sectional study`,`Tværsnitsstudie`,`دراسة مقطعية`,`Kesitsel çalışma`,`Badanie przekrojowe`],
-tp_endo:[`Endometriosis`,`Endometriose`,`بطانة الرحم المهاجرة`,`Endometriozis`,`Endometrioza`],
-tp_pcos:[`PCOS`,`PCOS`,`متلازمة تكيّس المبايض`,`PCOS`,`PCOS`],
-tp_fert:[`Fertility`,`Fertilitet`,`الخصوبة`,`Doğurganlık`,`Płodność`],
-tp_meno:[`Perimenopause & menopause`,`Perimenopause & overgangsalder`,`ما قبل سنّ اليأس وسنّ اليأس`,`Perimenopoz ve menopoz`,`Perimenopauza i menopauza`],
-tp_cyc:[`Cycle & pain`,`Cyklus & smerter`,`الدورة والألم`,`Döngü ve ağrı`,`Cykl i ból`],
-tp_all:[`All`,`Alle`,`الكل`,`Tümü`,`Wszystkie`],
-endo_s1:[`Diagnosis often takes several years from first symptom to confirmation.`,`Diagnosen tager ofte flere år fra første symptom til bekræftelse.`,`غالبًا يستغرق التشخيص عدة سنوات من أول عَرَض حتى التأكيد.`,`Tanı, ilk belirtiden doğrulamaya kadar çoğu zaman yıllar sürer.`,`Diagnoza często trwa kilka lat od pierwszych objawów do potwierdzenia.`],
-endo_s2:[`Imaging (specialised ultrasound/MRI) can give clues but does not always replace laparoscopy.`,`Billeddiagnostik (specialiseret ultralyd/MR) kan give indikationer, men erstatter ikke altid laparoskopi.`,`قد يعطي التصوير (الموجات فوق الصوتية المتخصصة/الرنين) مؤشرات لكنه لا يغني دائمًا عن التنظير البطني.`,`Görüntüleme (uzman ultrason/MR) ipuçları verebilir ancak laparoskopinin yerini her zaman tutmaz.`,`Obrazowanie (specjalistyczne USG/MRI) daje wskazówki, ale nie zawsze zastępuje laparoskopię.`],
-endo_s3:[`Treatment usually combines pain management, hormone therapy and sometimes surgery.`,`Behandling kombinerer typisk smertebehandling, hormonbehandling og evt. operation.`,`يجمع العلاج عادةً بين تسكين الألم والعلاج الهرموني وأحيانًا الجراحة.`,`Tedavi genellikle ağrı yönetimi, hormon tedavisi ve bazen ameliyatı birleştirir.`,`Leczenie łączy zwykle leczenie bólu, hormony, a czasem operację.`],
-endo_p1:[`Diagnostic delay in endometriosis`,`Diagnostisk forsinkelse ved endometriose`,`التأخر في تشخيص بطانة الرحم المهاجرة`,`Endometriozda tanı gecikmesi`,`Opóźnienie diagnozy w endometriozie`],
-endo_p2:[`Non-invasive diagnostics`,`Non-invasiv diagnostik`,`التشخيص غير الجراحي`,`Non-invaziv tanı`,`Diagnostyka nieinwazyjna`],
-pcos_s1:[`PCOS is one of the most common hormonal conditions in women of reproductive age.`,`PCOS er en af de hyppigste hormonelle tilstande hos kvinder i den fødedygtige alder.`,`المتلازمة من أكثر الاضطرابات الهرمونية شيوعًا لدى النساء في سن الإنجاب.`,`PCOS, doğurganlık çağındaki kadınlarda en sık görülen hormonal durumlardan biridir.`,`PCOS to jedno z najczęstszych zaburzeń hormonalnych u kobiet w wieku rozrodczym.`],
-pcos_s2:[`Diagnosis relies on cycle irregularities, signs of excess androgens and sometimes ultrasound.`,`Diagnosen bygger på cyklusforstyrrelser, tegn på androgenoverskud og evt. ultralyd.`,`يعتمد التشخيص على اضطراب الدورة وعلامات زيادة الأندروجينات وأحيانًا الموجات فوق الصوتية.`,`Tanı; döngü düzensizlikleri, androjen fazlalığı belirtileri ve bazen ultrasona dayanır.`,`Rozpoznanie opiera się na nieregularnych cyklach, objawach nadmiaru androgenów i czasem USG.`],
-pcos_s3:[`Lifestyle, metformin and hormonal treatment are used depending on your goals.`,`Livsstil, metformin og hormonbehandling bruges afhængigt af dine mål.`,`يُستخدم تعديل نمط الحياة والميتفورمين والعلاج الهرموني بحسب أهدافكِ.`,`Hedeflerine göre yaşam tarzı, metformin ve hormon tedavisi kullanılır.`,`Stosuje się styl życia, metforminę i hormony – zależnie od twoich celów.`],
-pcos_p1:[`International PCOS guideline`,`International PCOS-retningslinje`,`الإرشادات الدولية لمتلازمة تكيّس المبايض`,`Uluslararası PCOS kılavuzu`,`Międzynarodowe wytyczne dotyczące PCOS`],
-pcos_p2:[`Insulin resistance in PCOS`,`Insulinresistens ved PCOS`,`مقاومة الأنسولين في PCOS`,`PCOS'ta insülin direnci`,`Insulinooporność w PCOS`],
-fert_s1:[`Fertility declines noticeably from the mid-30s; cycle tracking helps put things in context.`,`Fertiliteten falder mærkbart fra midten af 30'erne; cyklusregistrering hjælper med at vurdere situationen.`,`تنخفض الخصوبة بشكل ملحوظ منذ منتصف الثلاثينيات؛ ومتابعة الدورة تساعد على التقييم.`,`Doğurganlık 30'lu yaşların ortasından itibaren belirgin şekilde azalır; döngü takibi değerlendirmeye yardımcı olur.`,`Płodność wyraźnie spada od połowy trzeciej dekady życia; śledzenie cyklu pomaga ocenić sytuację.`],
-fert_s2:[`Investigation often starts after 12 months without conception (earlier from age 35).`,`Udredning starter ofte efter 12 måneder uden graviditet (tidligere fra 35 år).`,`يبدأ الفحص غالبًا بعد 12 شهرًا دون حمل (أبكر بعد سن 35).`,`Araştırma genellikle 12 aylık başarısız denemeden sonra başlar (35 yaş üstünde daha erken).`,`Diagnostyka zwykle zaczyna się po 12 miesiącach bez ciąży (wcześniej po 35. roku życia).`],
-fert_s3:[`Both partners should be examined.`,`Begge partnere bør undersøges.`,`ينبغي فحص الشريكين معًا.`,`Her iki partner de değerlendirilmelidir.`,`Należy zbadać oboje partnerów.`],
-fert_p1:[`Age and probability of conception`,`Alder og sandsynlighed for graviditet`,`العمر واحتمال الحمل`,`Yaş ve gebelik olasılığı`,`Wiek a prawdopodobieństwo poczęcia`],
-meno_s1:[`Symptoms range from hot flushes to sleep problems and mood changes.`,`Symptomer spænder fra hedeture til søvnproblemer og humørsvingninger.`,`تتراوح الأعراض من الهبات الساخنة إلى اضطراب النوم وتقلّب المزاج.`,`Belirtiler sıcak basmalarından uyku sorunlarına ve duygudurum değişimlerine uzanır.`,`Objawy to m.in. uderzenia gorąca, problemy ze snem i wahania nastroju.`],
-meno_s2:[`Hormone therapy can be helpful; benefits and risks depend on timing and individual factors.`,`Hormonbehandling kan være gavnlig; fordele og risici afhænger af timing og individuelle faktorer.`,`قد يكون العلاج الهرموني مفيدًا؛ وتعتمد فوائده ومخاطره على التوقيت والعوامل الفردية.`,`Hormon tedavisi yararlı olabilir; fayda ve riskler zamanlamaya ve bireysel faktörlere bağlıdır.`,`Hormonoterapia może pomagać; korzyści i ryzyko zależą od momentu i czynników indywidualnych.`],
-meno_s3:[`Non-hormonal options exist.`,`Der findes ikke-hormonelle muligheder.`,`توجد خيارات غير هرمونية.`,`Hormonsuz seçenekler de vardır.`,`Istnieją też opcje niehormonalne.`],
-meno_p1:[`Hormone therapy – benefit and risk`,`Hormonbehandling – fordele og risici`,`العلاج الهرموني – الفوائد والمخاطر`,`Hormon tedavisi – fayda ve risk`,`Hormonoterapia – korzyści i ryzyko`],
-cyc_s1:[`Mild discomfort is common; severe pain is not “normal” and should be investigated.`,`Lette gener er almindelige; kraftige smerter er ikke “normale” og bør undersøges.`,`الانزعاج الخفيف شائع، أما الألم الشديد فليس «طبيعيًا» ويجب فحصه.`,`Hafif rahatsızlık yaygındır; şiddetli ağrı “normal” değildir ve araştırılmalıdır.`,`Lekki dyskomfort jest częsty; silny ból nie jest „normalny” i wymaga diagnostyki.`],
-cyc_s2:[`A symptom diary over 2–3 cycles makes diagnosis easier.`,`En symptomdagbog over 2–3 cyklusser letter diagnosen.`,`تسهّل يوميات الأعراض خلال 2–3 دورات عملية التشخيص.`,`2–3 döngü boyunca tutulan belirti günlüğü tanıyı kolaylaştırır.`,`Dziennik objawów z 2–3 cykli ułatwia diagnozę.`],
-cyc_s3:[`Warning signs: very heavy bleeding, pain that stops you from daily life.`,`Advarselstegn: meget kraftig blødning, smerter der stopper dig i hverdagen.`,`علامات التحذير: نزيف غزير جدًا، أو ألم يمنعكِ من ممارسة حياتكِ اليومية.`,`Uyarı işaretleri: çok yoğun kanama, günlük yaşamı engelleyen ağrı.`,`Sygnały alarmowe: bardzo obfite krwawienie, ból uniemożliwiający codzienne funkcjonowanie.`],
-cyc_p1:[`Period pain and everyday life`,`Menstruationssmerter og hverdagen`,`آلام الدورة والحياة اليومية`,`Adet ağrısı ve günlük yaşam`,`Bóle menstruacyjne a codzienność`],
-retracted:[`✕ retracted`,`✕ trukket tilbage`,`✕ مسحوبة`,`✕ geri çekildi`,`✕ wycofane`],
-retNote:[`This paper has been retracted and should not be used as evidence. Retraction notice:`,`Denne artikel er trukket tilbage og bør ikke bruges som evidens. Tilbagetrækningsnotits:`,`تم سحب هذه الورقة ولا ينبغي استخدامها كدليل علمي. إشعار السحب:`,`Bu makale geri çekilmiştir ve kanıt olarak kullanılmamalıdır. Geri çekme bildirimi:`,`Ta praca została wycofana i nie powinna być używana jako dowód. Informacja o wycofaniu:`],
-pubmed:[`View on PubMed`,`Se på PubMed`,`عرض في PubMed`,`PubMed'de görüntüle`,`Zobacz w PubMed`],
-prepTitle:[`Prepare for a doctor's visit`,`Forbered lægebesøg`,`التحضير لزيارة الطبيب`,`Doktor ziyaretine hazırlık`,`Przygotowanie do wizyty u lekarza`],
-prepLead:[`Fill in the form beforehand. You get a clear summary to print or show.`,`Udfyld formularen på forhånd. Du får et tydeligt resumé, du kan printe eller vise.`,`املئي النموذج مسبقًا لتحصلي على ملخص واضح يمكن طباعته أو عرضه.`,`Formu önceden doldur. Yazdırabileceğin veya gösterebileceğin net bir özet alırsın.`,`Wypełnij formularz wcześniej. Otrzymasz czytelne podsumowanie do wydruku lub pokazania.`],
-fm_cycle:[`Cycle & pain`,`Cyklus & smerter`,`الدورة والألم`,`Döngü ve ağrı`,`Cykl i ból`],
-fm_pcos:[`Suspected PCOS`,`Mistanke om PCOS`,`اشتباه بـ PCOS`,`PCOS şüphesi`,`Podejrzenie PCOS`],
-fm_gen:[`General visit`,`Generel samtale`,`زيارة عامة`,`Genel görüşme`,`Wizyta ogólna`],
-q_pain:[`Pain intensity (0–10)`,`Smertestyrke (0–10)`,`شدة الألم (0–10)`,`Ağrı şiddeti (0–10)`,`Nasilenie bólu (0–10)`],
-q_when:[`When does the pain occur?`,`Hvornår opstår smerterne?`,`متى يحدث الألم؟`,`Ağrı ne zaman oluşuyor?`,`Kiedy pojawia się ból?`],
-o_before:[`Before my period`,`Før menstruation`,`قبل الدورة`,`Adetten önce`,`Przed miesiączką`],
-o_during:[`During my period`,`Under menstruation`,`أثناء الدورة`,`Adet sırasında`,`Podczas miesiączki`],
-o_ovul:[`Ovulation`,`Ægløsning`,`الإباضة`,`Yumurtlama`,`Owulacja`],
-o_sex:[`During sex`,`Under sex`,`أثناء الجماع`,`Cinsel ilişki sırasında`,`Podczas seksu`],
-o_urine:[`When urinating`,`Ved vandladning`,`عند التبول`,`İdrar yaparken`,`Przy oddawaniu moczu`],
-o_stool:[`During bowel movements`,`Ved afføring`,`عند التبرز`,`Dışkılama sırasında`,`Przy wypróżnianiu`],
-o_const:[`Constant`,`Konstant`,`مستمر`,`Sürekli`,`Stały`],
-q_bleed:[`Bleeding`,`Blødning`,`النزيف`,`Kanama`,`Krwawienie`],
-o_heavy:[`Very heavy (soaking through in under 2 hours)`,`Meget kraftig (gennemvædet på under 2 timer)`,`غزير جدًا (تتشبّع الفوطة في أقل من ساعتين)`,`Çok yoğun (2 saatten kısa sürede ıslanıyor)`,`Bardzo obfite (przesiąka w mniej niż 2 godziny)`],
-o_spot:[`Spotting between periods`,`Pletblødninger mellem menstruationer`,`نزيف بين الدورات`,`Adetler arası lekelenme`,`Plamienia między miesiączkami`],
-o_clots:[`Large clots`,`Store blodpropper`,`جلطات دموية كبيرة`,`Büyük pıhtılar`,`Duże skrzepy`],
-o_irreg:[`Irregular`,`Uregelmæssig`,`غير منتظمة`,`Düzensiz`,`Nieregularne`],
-q_len:[`Cycle length in days (approx.)`,`Cykluslængde i dage (ca.)`,`طول الدورة بالأيام (تقريبًا)`,`Döngü uzunluğu (gün, yaklaşık)`,`Długość cyklu w dniach (ok.)`],
-q_since:[`How long have you had these symptoms?`,`Hvor længe har du haft symptomerne?`,`منذ متى ظهرت هذه الأعراض؟`,`Bu belirtiler ne zamandır var?`,`Od jak dawna masz te objawy?`],
-q_tried:[`What have you already tried?`,`Hvad har du allerede prøvet?`,`ماذا جرّبتِ حتى الآن؟`,`Şimdiye kadar neler denedin?`,`Co już próbowałaś?`],
-q_goal:[`What matters most for the doctor to understand?`,`Hvad er vigtigst, at lægen forstår?`,`ما أهم ما تريدين أن يفهمه الطبيب؟`,`Doktorun en çok neyi anlaması önemli?`,`Co jest najważniejsze, żeby lekarz zrozumiał?`],
-q_obs:[`Observations`,`Observationer`,`ملاحظات`,`Gözlemler`,`Obserwacje`],
-o_irrc:[`Irregular or missing cycle`,`Uregelmæssig eller udeblivende cyklus`,`دورة غير منتظمة أو غائبة`,`Düzensiz veya gelmeyen döngü`,`Nieregularny lub brak cyklu`],
-o_hair:[`Excess body hair`,`Øget behåring`,`شعر زائد في الجسم`,`Aşırı tüylenme`,`Nadmierne owłosienie`],
-o_acne:[`Acne`,`Akne`,`حب الشباب`,`Akne`,`Trądzik`],
-o_loss:[`Hair loss`,`Hårtab`,`تساقط الشعر`,`Saç dökülmesi`,`Wypadanie włosów`],
-o_weight:[`Weight gain`,`Vægtøgning`,`زيادة الوزن`,`Kilo alımı`,`Przyrost masy ciała`],
-o_tired:[`Fatigue`,`Træthed`,`إرهاق`,`Yorgunluk`,`Zmęczenie`],
-o_baby:[`Wish to conceive`,`Ønske om graviditet`,`رغبة في الحمل`,`Çocuk isteği`,`Chęć zajścia w ciążę`],
-q_lmp:[`Last period (date)`,`Seneste menstruation (dato)`,`آخر دورة (التاريخ)`,`Son adet (tarih)`,`Ostatnia miesiączka (data)`],
-q_fam:[`Family history (diabetes, PCOS …)`,`Familiehistorie (diabetes, PCOS …)`,`التاريخ العائلي (سكري، PCOS …)`,`Aile öyküsü (diyabet, PCOS …)`,`Wywiad rodzinny (cukrzyca, PCOS …)`],
-q_ask:[`Questions for the doctor`,`Spørgsmål til lægen`,`أسئلة للطبيب`,`Doktora sorular`,`Pytania do lekarza`],
-q_load:[`How much do the symptoms affect you? (0–10)`,`Hvor meget belaster symptomerne dig? (0–10)`,`إلى أي مدى تؤثر الأعراض عليكِ؟ (0–10)`,`Belirtiler seni ne kadar etkiliyor? (0–10)`,`Jak bardzo objawy cię obciążają? (0–10)`],
-q_main:[`Main complaint in your own words`,`Hovedproblem med dine egne ord`,`الشكوى الرئيسية بكلماتكِ`,`Ana şikâyet, kendi sözlerinle`,`Główna dolegliwość własnymi słowami`],
-q_meds:[`Medication / contraception`,`Medicin / prævention`,`الأدوية / وسائل منع الحمل`,`İlaçlar / korunma`,`Leki / antykoncepcja`],
-q_want:[`I would like …`,`Jeg ønsker …`,`أرغب في …`,`İstediğim …`,`Chciałabym …`],
-o_exam:[`An examination`,`En undersøgelse`,`إجراء فحص`,`Bir muayene`,`Badania`],
-o_second:[`A second opinion`,`En second opinion`,`رأيًا طبيًا ثانيًا`,`İkinci bir görüş`,`Drugiej opinii`],
-o_ref:[`A referral to a specialist`,`Henvisning til speciallæge`,`إحالة إلى أخصائي`,`Uzmana sevk`,`Skierowania do specjalisty`],
-o_written:[`A written summary`,`Et skriftligt resumé`,`ملخصًا مكتوبًا`,`Yazılı bir özet`,`Pisemnego podsumowania`],
-o_serious:[`A serious investigation`,`En seriøs udredning`,`تقييمًا جادًا للحالة`,`Ciddi bir araştırma`,`Poważnej diagnostyki`],
-gen:[`Create summary`,`Opret resumé`,`إنشاء الملخص`,`Özet oluştur`,`Utwórz podsumowanie`],
-cpy:[`Copy`,`Kopiér`,`نسخ`,`Kopyala`,`Kopiuj`],
-cpd:[`Copied ✓`,`Kopieret ✓`,`تم النسخ ✓`,`Kopyalandı ✓`,`Skopiowano ✓`],
-prt:[`Print`,`Print`,`طباعة`,`Yazdır`,`Drukuj`],
-sumHead:[`SUMMARY FOR MY DOCTOR'S VISIT`,`RESUMÉ TIL MIT LÆGEBESØG`,`ملخص لزيارتي الطبية`,`DOKTOR ZİYARETİM İÇİN ÖZET`,`PODSUMOWANIE NA WIZYTĘ U LEKARZA`],
-sumEnd:[`I ask for a serious investigation and an explanation of the next steps.`,`Jeg beder om en seriøs udredning og en forklaring af de næste skridt.`,`أطلب تقييمًا جادًا للحالة وشرحًا للخطوات القادمة.`,`Ciddi bir değerlendirme ve sonraki adımların açıklanmasını rica ediyorum.`,`Proszę o poważną diagnostykę i wyjaśnienie kolejnych kroków.`],
-mapTitle:[`Doctor map`,`Lægekort`,`خريطة الأطباء`,`Doktor haritası`,`Mapa lekarzy`],
-mapLead:[`Recommended by women. Filter by condition and read their experiences.`,`Anbefalet af kvinder. Filtrér efter tilstand og læs deres erfaringer.`,`موصى بهم من نساء. صفّي حسب الحالة واقرئي تجاربهن.`,`Kadınlar tarafından önerildi. Duruma göre filtrele ve deneyimleri oku.`,`Polecani przez kobiety. Filtruj według schorzenia i czytaj doświadczenia.`],
-shareExp:[`Share your experience`,`Del din erfaring`,`شاركي تجربتكِ`,`Deneyimini paylaş`,`Podziel się doświadczeniem`],
-publish:[`Publish`,`Udgiv`,`نشر`,`Yayınla`,`Opublikuj`],
-sp_gyn:[`Gynaecologist`,`Gynækolog`,`طبيبة نساء وتوليد`,`Kadın doğum uzmanı`,`Ginekolożka`],
-sp_endoc:[`Endocrinology`,`Endokrinologi`,`الغدد الصماء`,`Endokrinoloji`,`Endokrynologia`],
-sp_meno:[`Menopause clinic`,`Overgangsalder-klinik`,`عيادة سنّ اليأس`,`Menopoz kliniği`,`Poradnia menopauzy`],
-sp_endoz:[`Endometriosis centre`,`Endometriosecenter`,`مركز بطانة الرحم المهاجرة`,`Endometriozis merkezi`,`Centrum endometriozy`],
-rv1:[`Took more than 45 minutes for me and never questioned me. After years, finally a referral.`,`Brugte over 45 minutter på mig og stillede aldrig spørgsmålstegn ved mig. Efter flere år endelig en henvisning.`,`خصّصت لي أكثر من 45 دقيقة ولم تشكّك بكلامي أبدًا. وبعد سنوات حصلتُ أخيرًا على إحالة.`,`Bana 45 dakikadan fazla zaman ayırdı, hiç sorgulamadı. Yıllar sonra nihayet bir sevk aldım.`,`Poświęciła mi ponad 45 minut i nigdy nie podważała moich słów. Po latach wreszcie skierowanie.`],
-rv2:[`Very empathetic, explains every option.`,`Meget empatisk, forklarer alle muligheder.`,`متعاطفة جدًا وتشرح كل الخيارات.`,`Çok empatik, tüm seçenekleri anlatıyor.`,`Bardzo empatyczna, wyjaśnia każdą opcję.`],
-rv3:[`PCOS was finally taken seriously, clear lab work-up.`,`PCOS blev endelig taget alvorligt, tydelig laboratorieudredning.`,`أخيرًا أُخذ PCOS على محمل الجد، مع فحوصات مخبرية واضحة.`,`PCOS sonunda ciddiye alındı, net laboratuvar incelemesi.`,`PCOS wreszcie potraktowano poważnie, jasna diagnostyka laboratoryjna.`],
-rv4:[`Great explanations, no time pressure.`,`Fremragende forklaringer, intet tidspres.`,`شرح ممتاز دون أي استعجال.`,`Harika açıklamalar, zaman baskısı yok.`,`Świetne wyjaśnienia, bez pośpiechu.`],
-rv5:[`Helped in a structured way with an unfulfilled wish for a child.`,`Hjalp struktureret ved uopfyldt børneønske.`,`ساعدتني بشكل منظم في موضوع تأخر الحمل.`,`İstenen çocuğun olmaması konusunda düzenli şekilde yardımcı oldu.`,`Pomogła w uporządkowany sposób przy niespełnionym pragnieniu dziecka.`],
-rv6:[`Finally someone who doesn't brush off hot flushes.`,`Endelig én, der ikke affejer hedeture.`,`أخيرًا شخص لا يستهين بالهبات الساخنة.`,`Sonunda sıcak basmalarını önemsiz görmeyen biri.`,`Wreszcie ktoś, kto nie bagatelizuje uderzeń gorąca.`],
-rv7:[`Specialised ultrasound, very competent.`,`Specialiseret ultralyd, meget kompetent.`,`فحص بالموجات فوق الصوتية المتخصصة، كفاءة عالية جدًا.`,`Uzman ultrason, çok yetkin.`,`Specjalistyczne USG, bardzo kompetentna.`],
-rv8:[`For the first time I felt understood.`,`For første gang følte jeg mig forstået.`,`شعرتُ لأول مرة بأنني مفهومة.`,`İlk kez anlaşıldığımı hissettim.`,`Pierwszy raz poczułam się zrozumiana.`],
-chatLead:[`Exchange with women who understand you. You appear under a pseudonym.`,`Udveksl med kvinder, der forstår dig. Du optræder under et pseudonym.`,`تبادلي الحديث مع نساء يفهمنكِ. تظهرين باسم مستعار.`,`Seni anlayan kadınlarla paylaş. Takma adla görünürsün.`,`Rozmawiaj z kobietami, które cię rozumieją. Występujesz pod pseudonimem.`],
-chatPh:[`Write a message…`,`Skriv en besked…`,`اكتبي رسالة…`,`Bir mesaj yaz…`,`Napisz wiadomość…`],
-send:[`Send`,`Send`,`إرسال`,`Gönder`,`Wyślij`],
-posts:[`posts`,`opslag`,`مشاركات`,`gönderi`,`wpisów`],
-gr_cyc:[`Cycle & everyday life`,`Cyklus & hverdag`,`الدورة والحياة اليومية`,`Döngü ve günlük yaşam`,`Cykl i codzienność`],
-c1:[`Has anyone tried inositol?`,`Har nogen erfaring med inositol?`,`هل جرّبت إحداكنّ الإينوزيتول؟`,`İnositol deneyen var mı?`,`Czy ktoś próbował inozytolu?`],
-c2:[`Yes, it stabilised my cycle after about 3 months.`,`Ja, det stabiliserede min cyklus efter ca. 3 måneder.`,`نعم، ثبّت دورتي بعد نحو 3 أشهر.`,`Evet, yaklaşık 3 ayda döngümü düzenledi.`,`Tak, ustabilizował mój cykl po ok. 3 miesiącach.`],
-c3:[`How did you get to a diagnosis?`,`Hvordan nåede I frem til en diagnose?`,`كيف وصلتنّ إلى التشخيص؟`,`Tanıya nasıl ulaştınız?`,`Jak doszłyście do diagnozy?`],
-c4:[`Keep a symptom diary and look for a specialist centre.`,`Før en symptomdagbog og find et specialiseret center.`,`دوّني يوميات الأعراض وابحثي عن مركز متخصص.`,`Belirti günlüğü tut ve uzman bir merkez ara.`,`Prowadź dziennik objawów i poszukaj ośrodka specjalistycznego.`],
-c5:[`We've been trying for 8 months – when did you get checked?`,`Vi har prøvet i 8 måneder – hvornår fik I det undersøgt?`,`نحاول منذ 8 أشهر – متى أجريتنّ الفحوصات؟`,`8 aydır deniyoruz – siz ne zaman kontrol yaptırdınız?`,`Staramy się od 8 miesięcy – kiedy się zbadałyście?`],
-c6:[`Sleep problems are the worst part for me. Tips?`,`Søvnproblemer er det værste for mig. Tips?`,`مشاكل النوم هي الأسوأ بالنسبة لي. أي نصائح؟`,`Benim için en kötüsü uyku sorunları. Önerisi olan?`,`Najgorsze są u mnie problemy ze snem. Jakieś wskazówki?`],
-c7:[`What helps with period pain at work?`,`Hvad hjælper mod menstruationssmerter på arbejdet?`,`ما الذي يخفف آلام الدورة في العمل؟`,`İşte adet ağrısına ne iyi geliyor?`,`Co pomaga na bóle miesiączkowe w pracy?`],
-docTitle:[`Dr. Support Group`,`Læge-supportgruppe`,`مجموعة دعم الأطباء`,`Doktor Destek Grubu`,`Grupa wsparcia lekarzy`],
-docLead:[`Doctors and professionals who voluntarily answer outside office hours – e.g. to help you assess useful examinations.`,`Læger og fagfolk, der frivilligt svarer uden for åbningstid – fx for at hjælpe med at vurdere relevante undersøgelser.`,`أطباء ومختصون يردّون طوعًا خارج أوقات الدوام – مثلًا لمساعدتكِ في تقييم الفحوصات المناسبة.`,`Mesai dışında gönüllü olarak yanıt veren doktorlar ve uzmanlar – örneğin hangi tetkiklerin yararlı olacağını değerlendirmek için.`,`Lekarze i specjaliści, którzy dobrowolnie odpowiadają po godzinach – np. pomagają ocenić sensowne badania.`],
-docAlert:[`Not an emergency channel. For acute symptoms: 1813 (medical helpline) or 112.`,`Ikke en nødkanal. Ved akutte symptomer: 1813 (Lægevagten) eller 112.`,`ليست قناة طوارئ. في الحالات الحادة: 1813 (خط الرعاية الطبية) أو 112.`,`Acil kanal değildir. Akut belirtilerde: 1813 (tıbbi yardım hattı) veya 112.`,`To nie jest kanał alarmowy. Przy ostrych objawach: 1813 (dyżur lekarski) lub 112.`],
-pr_gyn:[`Gynaecology · Endometriosis`,`Gynækologi · Endometriose`,`أمراض النساء · بطانة الرحم المهاجرة`,`Jinekoloji · Endometriozis`,`Ginekologia · Endometrioza`],
-pr_endo:[`Endocrinology · PCOS`,`Endokrinologi · PCOS`,`الغدد الصماء · PCOS`,`Endokrinoloji · PCOS`,`Endokrynologia · PCOS`],
-pr_meno:[`Menopause`,`Overgangsalder`,`سنّ اليأس`,`Menopoz`,`Menopauza`],
-pr_mid:[`Midwife · Cycle · Fertility`,`Jordemoder · Cyklus · Fertilitet`,`قابلة · الدورة · الخصوبة`,`Ebe · Döngü · Doğurganlık`,`Położna · Cykl · Płodność`],
-av1:[`Mon–Thu 7–9 pm`,`man–tor 19–21`,`الإثنين–الخميس 19–21`,`Pzt–Per 19–21`,`pn–czw 19–21`],
-av2:[`Tue & Thu 8–10 pm`,`tirs & tors 20–22`,`الثلاثاء والخميس 20–22`,`Sal ve Per 20–22`,`wt i czw 20–22`],
-av3:[`Sat 10 am–12 pm`,`lør 10–12`,`السبت 10–12`,`Cmt 10–12`,`sob 10–12`],
-av4:[`Daily 6–8 pm`,`dagligt 18–20`,`يوميًا 18–20`,`Her gün 18–20`,`codziennie 18–20`],
-midwife:[`Midwife`,`Jordemoder`,`قابلة`,`Ebe`,`Położna`],
-on:[`Available now`,`Tilgængelig nu`,`متاحة الآن`,`Şu an müsait`,`Dostępna teraz`],
-off:[`Currently offline`,`Offline lige nu`,`غير متصلة حاليًا`,`Şu an çevrimdışı`,`Obecnie offline`],
-reqTitle:[`Send a request`,`Send en forespørgsel`,`إرسال طلب`,`Talep gönder`,`Wyślij zapytanie`],
-reqTo:[`To`,`Til`,`إلى`,`Kime`,`Do`],
-reqQ:[`Your question`,`Dit spørgsmål`,`سؤالكِ`,`Sorun`,`Twoje pytanie`],
-reqPh:[`e.g. I've had severe period pain for 2 years. Which examination should I bring up?`,`fx Jeg har haft kraftige menstruationssmerter i 2 år. Hvilken undersøgelse bør jeg nævne?`,`مثلًا: أعاني من آلام دورة شديدة منذ سنتين. أي فحص يجب أن أطلبه؟`,`örn. 2 yıldır şiddetli adet ağrım var. Hangi tetkiki istemeliyim?`,`np. Od 2 lat mam silne bóle miesiączkowe. O jakie badanie powinnam poprosić?`],
-reqSend:[`Send request`,`Send forespørgsel`,`إرسال الطلب`,`Talebi gönder`,`Wyślij zapytanie`],
-pend:[`Awaiting reply`,`Afventer svar`,`بانتظار الرد`,`Yanıt bekleniyor`,`Oczekuje na odpowiedź`],
-toWord:[`To`,`Til`,`إلى`,`Kime:`,`Do`]
+loginH:[`You'll be taken seriously here.`,`Her bliver du taget alvorligt.`,`Hier wirst du ernst genommen.`,`Här blir du tagen på allvar.`,`Tutaj traktujemy cię poważnie.`],
+loginSub:[`Knowledge, experiences and doctors women trust – all in one place.`,`Viden, erfaringer og læger, som kvinder stoler på – samlet ét sted.`,`Wissen, Erfahrungen und Ärztinnen und Ärzte, denen Frauen vertrauen – an einem Ort.`,`Kunskap, erfarenheter och läkare som kvinnor litar på – på ett ställe.`,`Wiedza, doświadczenia i lekarze, którym ufają kobiety – w jednym miejscu.`],
+cprLabel:[`CPR number`,`CPR-nummer`,`CPR-Nummer`,`CPR-nummer`,`Numer CPR`],
+cprBad:[`Please enter a valid CPR number (DDMMYY-XXXX).`,`Indtast et gyldigt CPR-nummer (DDMMÅÅ-XXXX).`,`Bitte gib eine gültige CPR-Nummer ein (TTMMJJ-XXXX).`,`Ange ett giltigt CPR-nummer (DDMMÅÅ-XXXX).`,`Wpisz prawidłowy numer CPR (DDMMRR-XXXX).`],
+cprConsent:[`Please agree to the data processing.`,`Accepter venligst databehandlingen.`,`Bitte stimme der Datenverarbeitung zu.`,`Godkänn behandlingen av personuppgifter.`,`Zaakceptuj przetwarzanie danych.`],
+consent:[`I agree to the processing of my data. My CPR number is never stored in plain text and never visible to others.`,`Jeg accepterer behandlingen af mine data. Mit CPR-nummer gemmes aldrig i klartekst og er aldrig synligt for andre.`,`Ich stimme der Verarbeitung meiner Daten zu. Meine CPR-Nummer wird nie im Klartext gespeichert und ist für andere nie sichtbar.`,`Jag godkänner behandlingen av mina uppgifter. Mitt CPR-nummer sparas aldrig i klartext och syns aldrig för andra.`,`Wyrażam zgodę na przetwarzanie moich danych. Mój numer CPR nigdy nie jest przechowywany jawnym tekstem ani widoczny dla innych.`],
+login:[`Log in`,`Log ind`,`Anmelden`,`Logga in`,`Zaloguj się`],
+proto:[`Prototype: no real check against the CPR register takes place.`,`Prototype: Der sker ingen reel kontrol mod CPR-registret.`,`Prototyp: Es findet keine echte Prüfung im CPR-Register statt.`,`Prototyp: ingen riktig kontroll mot CPR-registret görs.`,`Prototyp: nie ma prawdziwej weryfikacji w rejestrze CPR.`],
+nav_home:[`Home`,`Hjem`,`Start`,`Hem`,`Start`],
+nav_know:[`Knowledge`,`Viden`,`Wissen`,`Kunskap`,`Wiedza`],
+nav_prep:[`Prepare`,`Forbered`,`Vorbereiten`,`Förbered`,`Przygotuj`],
+nav_map:[`Map`,`Kort`,`Karte`,`Karta`,`Mapa`],
+nav_chat:[`Community`,`Fællesskab`,`Community`,`Community`,`Społeczność`],
+nav_doc:[`Dr. Support`,`Lægehjælp`,`Dr. Support`,`Dr. Support`,`Wsparcie lekarzy`],
+g_morning:[`Good morning`,`Godmorgen`,`Guten Morgen`,`God morgon`,`Dzień dobry`],
+g_day:[`Hello`,`Hej`,`Hallo`,`Hej`,`Cześć`],
+g_eve:[`Good evening`,`Godaften`,`Guten Abend`,`God kväll`,`Dobry wieczór`],
+howAre:[`We're glad you're here. How are you feeling today?`,`Dejligt, at du er her. Hvordan har du det i dag?`,`Schön, dass du da bist. Wie fühlst du dich heute?`,`Vad roligt att du är här. Hur mår du i dag?`,`Miło, że jesteś. Jak się dzisiaj czujesz?`],
+whereTo:[`Where would you like to go?`,`Hvor vil du hen?`,`Wohin möchtest du?`,`Vart vill du gå?`,`Dokąd chcesz przejść?`],
+m1:[`Good`,`Godt`,`Gut`,`Bra`,`Dobrze`],
+m2:[`Okay`,`Okay`,`Okay`,`Okej`,`Tak sobie`],
+m3:[`Tired`,`Træt`,`Müde`,`Trött`,`Zmęczona`],
+m4:[`In pain`,`Smerter`,`Schmerzen`,`Smärta`,`Ból`],
+m5:[`Overwhelmed`,`Overvældet`,`Überfordert`,`Överväldigad`,`Przytłoczona`],
+trackTitle:[`Your past week`,`Din seneste uge`,`Deine letzte Woche`,`Din senaste vecka`,`Twój ostatni tydzień`],
+trackMostly:[`Most often this week:`,`Oftest denne uge:`,`Am häufigsten diese Woche:`,`Oftast den här veckan:`,`Najczęściej w tym tygodniu:`],
+trackHint:[`Tap a day, then an icon, to log or change how you felt.`,`Tryk på en dag og derefter et ikon for at notere eller ændre, hvordan du havde det.`,`Tippe auf einen Tag und dann auf ein Symbol, um zu notieren oder zu ändern, wie du dich gefühlt hast.`,`Tryck på en dag och sedan på en ikon för att notera eller ändra hur du mådde.`,`Dotknij dnia, potem ikony, aby zapisać lub zmienić samopoczucie.`],
+trackToday:[`Today`,`I dag`,`Heute`,`I dag`,`Dziś`],
+r1:[`Lovely to hear. Take that energy with you.`,`Dejligt at høre. Tag den energi med dig.`,`Schön zu hören. Nimm diese Energie mit.`,`Vad roligt att höra. Ta med dig den energin.`,`Miło to słyszeć. Zabierz tę energię ze sobą.`],
+r2:[`Okay is okay. See if something small could do you good today.`,`Okay er okay. Se om noget småt kunne gøre dig godt i dag.`,`Okay ist okay. Schau, ob dir heute etwas Kleines guttun würde.`,`Okej är okej. Se om något litet kan göra dig gott i dag.`,`„Tak sobie” też jest w porządku. Zrób dziś coś małego dla siebie.`],
+r3:[`Tiredness is a real signal. Feel free to note it down for your next appointment.`,`Træthed er et ægte signal. Skriv den gerne ned til din næste aftale.`,`Müdigkeit ist ein echtes Signal. Notiere sie gern für deinen nächsten Termin.`,`Trötthet är en verklig signal. Skriv gärna ner den inför ditt nästa besök.`,`Zmęczenie to realny sygnał. Zanotuj je przed kolejną wizytą.`],
+r4:[`I'm sorry. You can record your symptoms under “Prepare” – or talk about it in the community.`,`Det er jeg ked af. Du kan notere dine symptomer under “Forbered” – eller tale om det i fællesskabet.`,`Das tut mir leid. Du kannst deine Symptome unter „Vorbereiten“ festhalten – oder in der Community darüber sprechen.`,`Det var tråkigt att höra. Du kan skriva ner dina symtom under ”Förbered” – eller prata om det i communityn.`,`Przykro mi. Możesz zapisać objawy w „Przygotuj” albo porozmawiać o nich we wspólnocie.`],
+r5:[`You don't have to carry it all alone. People are here for you in the community and at Dr. Support.`,`Du behøver ikke bære det hele alene. Der er mennesker til stede for dig i fællesskabet og hos Lægehjælp.`,`Du musst nicht alles allein tragen. In der Community und bei Dr. Support sind Menschen für dich da.`,`Du behöver inte bära allt själv. Det finns människor här för dig i communityn och hos Dr. Support.`,`Nie musisz dźwigać wszystkiego sama. We wspólnocie i we wsparciu lekarzy są ludzie dla ciebie.`],
+t_know:[`Current research, explained briefly`,`Aktuel forskning, kort forklaret`,`Aktuelle Forschung, kurz erklärt`,`Aktuell forskning, kort förklarad`,`Aktualne badania w skrócie`],
+t_prep:[`Describe your symptoms clearly`,`Beskriv dine symptomer tydeligt`,`Symptome klar beschreiben`,`Beskriv dina symtom tydligt`,`Opisz objawy jasno`],
+t_map:[`Recommendations from women`,`Anbefalinger fra kvinder`,`Empfehlungen von Frauen`,`Rekommendationer från kvinnor`,`Rekomendacje od kobiet`],
+t_chat:[`Exchange by topic`,`Udveksling efter emne`,`Austausch nach Thema`,`Utbyte efter ämne`,`Rozmowy według tematu`],
+t_doc:[`Professionals, also after hours`,`Fagfolk, også uden for åbningstid`,`Fachpersonen, auch nach Feierabend`,`Fackpersoner, även efter arbetstid`,`Specjaliści także po godzinach`],
+t_prepName:[`Prepare a doctor's visit`,`Forbered lægebesøg`,`Arztbesuch vorbereiten`,`Förbered läkarbesöket`,`Przygotuj wizytę u lekarza`],
+knowLead:[`Reviewed research on women's health – with an easy summary for each topic.`,`Gennemgået forskning i kvinders sundhed – med et letforståeligt resumé for hvert emne.`,`Geprüfte Forschung zur Frauengesundheit – mit einer verständlichen Zusammenfassung pro Thema.`,`Granskad forskning om kvinnors hälsa – med en lättförståelig sammanfattning för varje ämne.`,`Zweryfikowane badania o zdrowiu kobiet – z przystępnym podsumowaniem każdego tematu.`],
+overview:[`Overview`,`Overblik`,`Überblick`,`Översikt`,`Przegląd`],
+studies:[`Reviewed studies`,`Gennemgåede studier`,`Geprüfte Studien`,`Granskade studier`,`Zweryfikowane badania`],
+verified:[`✓ reviewed`,`✓ gennemgået`,`✓ geprüft`,`✓ granskad`,`✓ zweryfikowane`],
+ex:[`Sample study:`,`Eksempelstudie:`,`Beispielstudie:`,`Exempelstudie:`,`Przykładowe badanie:`],
+ty_review:[`Systematic review`,`Systematisk review`,`Systematischer Review`,`Systematisk översikt`,`Przegląd systematyczny`],
+ty_cohort:[`Cohort study`,`Kohortestudie`,`Kohortenstudie`,`Kohortstudie`,`Badanie kohortowe`],
+ty_rct:[`Randomised trial`,`Randomiseret forsøg`,`Randomisierte Studie`,`Randomiserad studie`,`Badanie randomizowane`],
+ty_guide:[`Guideline`,`Retningslinje`,`Leitlinie`,`Riktlinje`,`Wytyczne`],
+ty_meta:[`Meta-analysis`,`Metaanalyse`,`Metaanalyse`,`Metaanalys`,`Metaanaliza`],
+ty_cross:[`Cross-sectional study`,`Tværsnitsstudie`,`Querschnittsstudie`,`Tvärsnittsstudie`,`Badanie przekrojowe`],
+tp_endo:[`Endometriosis`,`Endometriose`,`Endometriose`,`Endometrios`,`Endometrioza`],
+tp_pcos:[`PCOS`,`PCOS`,`PCOS`,`PCOS`,`PCOS`],
+tp_fert:[`Fertility`,`Fertilitet`,`Fruchtbarkeit`,`Fertilitet`,`Płodność`],
+tp_meno:[`Perimenopause & menopause`,`Perimenopause & overgangsalder`,`Perimenopause & Menopause`,`Perimenopaus & klimakteriet`,`Perimenopauza i menopauza`],
+tp_cyc:[`Cycle & pain`,`Cyklus & smerter`,`Zyklus & Schmerzen`,`Cykel & smärta`,`Cykl i ból`],
+tp_all:[`All`,`Alle`,`Alle`,`Alla`,`Wszystkie`],
+endo_s1:[`Diagnosis often takes several years from first symptom to confirmation.`,`Diagnosen tager ofte flere år fra første symptom til bekræftelse.`,`Die Diagnose dauert oft mehrere Jahre vom ersten Symptom bis zur Bestätigung.`,`Diagnosen tar ofta flera år från första symtom till bekräftelse.`,`Diagnoza często trwa kilka lat od pierwszych objawów do potwierdzenia.`],
+endo_s2:[`Imaging (specialised ultrasound/MRI) can give clues but does not always replace laparoscopy.`,`Billeddiagnostik (specialiseret ultralyd/MR) kan give indikationer, men erstatter ikke altid laparoskopi.`,`Bildgebung (spezialisierter Ultraschall/MRT) kann Hinweise liefern, ersetzt aber nicht immer die Bauchspiegelung.`,`Bilddiagnostik (specialiserat ultraljud/MR) kan ge ledtrådar men ersätter inte alltid titthålsoperation.`,`Obrazowanie (specjalistyczne USG/MRI) daje wskazówki, ale nie zawsze zastępuje laparoskopię.`],
+endo_s3:[`Treatment usually combines pain management, hormone therapy and sometimes surgery.`,`Behandling kombinerer typisk smertebehandling, hormonbehandling og evt. operation.`,`Die Behandlung kombiniert meist Schmerztherapie, Hormontherapie und manchmal eine Operation.`,`Behandlingen kombinerar oftast smärtlindring, hormonbehandling och ibland operation.`,`Leczenie łączy zwykle leczenie bólu, hormony, a czasem operację.`],
+endo_p1:[`Diagnostic delay in endometriosis`,`Diagnostisk forsinkelse ved endometriose`,`Diagnoseverzögerung bei Endometriose`,`Försenad diagnos vid endometrios`,`Opóźnienie diagnozy w endometriozie`],
+endo_p2:[`Non-invasive diagnostics`,`Non-invasiv diagnostik`,`Nicht-invasive Diagnostik`,`Icke-invasiv diagnostik`,`Diagnostyka nieinwazyjna`],
+pcos_s1:[`PCOS is one of the most common hormonal conditions in women of reproductive age.`,`PCOS er en af de hyppigste hormonelle tilstande hos kvinder i den fødedygtige alder.`,`PCOS gehört zu den häufigsten hormonellen Störungen bei Frauen im gebärfähigen Alter.`,`PCOS är ett av de vanligaste hormonella tillstånden hos kvinnor i fertil ålder.`,`PCOS to jedno z najczęstszych zaburzeń hormonalnych u kobiet w wieku rozrodczym.`],
+pcos_s2:[`Diagnosis relies on cycle irregularities, signs of excess androgens and sometimes ultrasound.`,`Diagnosen bygger på cyklusforstyrrelser, tegn på androgenoverskud og evt. ultralyd.`,`Die Diagnose stützt sich auf Zyklusstörungen, Zeichen von Androgenüberschuss und manchmal Ultraschall.`,`Diagnosen bygger på rubbningar i cykeln, tecken på androgenöverskott och ibland ultraljud.`,`Rozpoznanie opiera się na nieregularnych cyklach, objawach nadmiaru androgenów i czasem USG.`],
+pcos_s3:[`Lifestyle, metformin and hormonal treatment are used depending on your goals.`,`Livsstil, metformin og hormonbehandling bruges afhængigt af dine mål.`,`Lebensstil, Metformin und Hormonbehandlung kommen je nach Ziel zum Einsatz.`,`Livsstil, metformin och hormonbehandling används beroende på dina mål.`,`Stosuje się styl życia, metforminę i hormony – zależnie od twoich celów.`],
+pcos_p1:[`International PCOS guideline`,`International PCOS-retningslinje`,`Internationale PCOS-Leitlinie`,`Internationell PCOS-riktlinje`,`Międzynarodowe wytyczne dotyczące PCOS`],
+pcos_p2:[`Insulin resistance in PCOS`,`Insulinresistens ved PCOS`,`Insulinresistenz bei PCOS`,`Insulinresistens vid PCOS`,`Insulinooporność w PCOS`],
+fert_s1:[`Fertility declines noticeably from the mid-30s; cycle tracking helps put things in context.`,`Fertiliteten falder mærkbart fra midten af 30'erne; cyklusregistrering hjælper med at vurdere situationen.`,`Die Fruchtbarkeit nimmt ab Mitte 30 spürbar ab; Zyklustracking hilft bei der Einordnung.`,`Fertiliteten minskar märkbart från mitten av 30-årsåldern; cykelspårning hjälper till att bedöma läget.`,`Płodność wyraźnie spada od połowy trzeciej dekady życia; śledzenie cyklu pomaga ocenić sytuację.`],
+fert_s2:[`Investigation often starts after 12 months without conception (earlier from age 35).`,`Udredning starter ofte efter 12 måneder uden graviditet (tidligere fra 35 år).`,`Die Abklärung beginnt oft nach 12 Monaten ohne Schwangerschaft (früher ab 35).`,`Utredningen börjar ofta efter 12 månader utan graviditet (tidigare från 35 års ålder).`,`Diagnostyka zwykle zaczyna się po 12 miesiącach bez ciąży (wcześniej po 35. roku życia).`],
+fert_s3:[`Both partners should be examined.`,`Begge partnere bør undersøges.`,`Beide Partner sollten untersucht werden.`,`Båda parter bör undersökas.`,`Należy zbadać oboje partnerów.`],
+fert_p1:[`Age and probability of conception`,`Alder og sandsynlighed for graviditet`,`Alter und Wahrscheinlichkeit einer Schwangerschaft`,`Ålder och sannolikhet för graviditet`,`Wiek a prawdopodobieństwo poczęcia`],
+meno_s1:[`Symptoms range from hot flushes to sleep problems and mood changes.`,`Symptomer spænder fra hedeture til søvnproblemer og humørsvingninger.`,`Die Beschwerden reichen von Hitzewallungen über Schlafprobleme bis zu Stimmungsschwankungen.`,`Symtomen sträcker sig från värmevallningar till sömnproblem och humörsvängningar.`,`Objawy to m.in. uderzenia gorąca, problemy ze snem i wahania nastroju.`],
+meno_s2:[`Hormone therapy can be helpful; benefits and risks depend on timing and individual factors.`,`Hormonbehandling kan være gavnlig; fordele og risici afhænger af timing og individuelle faktorer.`,`Eine Hormontherapie kann hilfreich sein; Nutzen und Risiken hängen vom Zeitpunkt und individuellen Faktoren ab.`,`Hormonbehandling kan vara till hjälp; nytta och risker beror på tidpunkt och individuella faktorer.`,`Hormonoterapia może pomagać; korzyści i ryzyko zależą od momentu i czynników indywidualnych.`],
+meno_s3:[`Non-hormonal options exist.`,`Der findes ikke-hormonelle muligheder.`,`Es gibt auch nicht-hormonelle Optionen.`,`Det finns även icke-hormonella alternativ.`,`Istnieją też opcje niehormonalne.`],
+meno_p1:[`Hormone therapy – benefit and risk`,`Hormonbehandling – fordele og risici`,`Hormontherapie – Nutzen und Risiko`,`Hormonbehandling – nytta och risk`,`Hormonoterapia – korzyści i ryzyko`],
+cyc_s1:[`Mild discomfort is common; severe pain is not “normal” and should be investigated.`,`Lette gener er almindelige; kraftige smerter er ikke “normale” og bør undersøges.`,`Leichte Beschwerden sind häufig; starke Schmerzen sind nicht „normal“ und sollten abgeklärt werden.`,`Lindriga besvär är vanliga; kraftig smärta är inte ”normalt” och bör utredas.`,`Lekki dyskomfort jest częsty; silny ból nie jest „normalny” i wymaga diagnostyki.`],
+cyc_s2:[`A symptom diary over 2–3 cycles makes diagnosis easier.`,`En symptomdagbog over 2–3 cyklusser letter diagnosen.`,`Ein Symptomtagebuch über 2–3 Zyklen erleichtert die Diagnose.`,`En symtomdagbok över 2–3 cykler gör diagnosen enklare.`,`Dziennik objawów z 2–3 cykli ułatwia diagnozę.`],
+cyc_s3:[`Warning signs: very heavy bleeding, pain that stops you from daily life.`,`Advarselstegn: meget kraftig blødning, smerter der stopper dig i hverdagen.`,`Warnzeichen: sehr starke Blutung, Schmerzen, die den Alltag lahmlegen.`,`Varningstecken: mycket kraftig blödning, smärta som hindrar vardagen.`,`Sygnały alarmowe: bardzo obfite krwawienie, ból uniemożliwiający codzienne funkcjonowanie.`],
+cyc_p1:[`Period pain and everyday life`,`Menstruationssmerter og hverdagen`,`Periodenschmerzen und Alltag`,`Mensvärk och vardagen`,`Bóle menstruacyjne a codzienność`],
+retracted:[`✕ retracted`,`✕ trukket tilbage`,`✕ zurückgezogen`,`✕ indragen`,`✕ wycofane`],
+retNote:[`This paper has been retracted and should not be used as evidence. Retraction notice:`,`Denne artikel er trukket tilbage og bør ikke bruges som evidens. Tilbagetrækningsnotits:`,`Diese Arbeit wurde zurückgezogen und sollte nicht als Beleg verwendet werden. Rückzugshinweis:`,`Den här artikeln har dragits tillbaka och bör inte användas som underlag. Meddelande om indragning:`,`Ta praca została wycofana i nie powinna być używana jako dowód. Informacja o wycofaniu:`],
+pubmed:[`View on PubMed`,`Se på PubMed`,`Auf PubMed ansehen`,`Visa på PubMed`,`Zobacz w PubMed`],
+prepTitle:[`Prepare for a doctor's visit`,`Forbered lægebesøg`,`Arztbesuch vorbereiten`,`Förbered läkarbesöket`,`Przygotowanie do wizyty u lekarza`],
+prepLead:[`Fill in the form beforehand. You get a clear summary to print or show.`,`Udfyld formularen på forhånd. Du får et tydeligt resumé, du kan printe eller vise.`,`Fülle das Formular vorab aus. Du erhältst eine klare Zusammenfassung zum Ausdrucken oder Zeigen.`,`Fyll i formuläret i förväg. Du får en tydlig sammanfattning att skriva ut eller visa.`,`Wypełnij formularz wcześniej. Otrzymasz czytelne podsumowanie do wydruku lub pokazania.`],
+fm_cycle:[`Cycle & pain`,`Cyklus & smerter`,`Zyklus & Schmerzen`,`Cykel & smärta`,`Cykl i ból`],
+fm_pcos:[`Suspected PCOS`,`Mistanke om PCOS`,`PCOS-Verdacht`,`Misstänkt PCOS`,`Podejrzenie PCOS`],
+fm_gen:[`General visit`,`Generel samtale`,`Allgemeines Gespräch`,`Allmänt samtal`,`Wizyta ogólna`],
+q_pain:[`Pain intensity (0–10)`,`Smertestyrke (0–10)`,`Schmerzstärke (0–10)`,`Smärtstyrka (0–10)`,`Nasilenie bólu (0–10)`],
+q_when:[`When does the pain occur?`,`Hvornår opstår smerterne?`,`Wann treten die Schmerzen auf?`,`När uppstår smärtan?`,`Kiedy pojawia się ból?`],
+o_before:[`Before my period`,`Før menstruation`,`Vor der Periode`,`Före mens`,`Przed miesiączką`],
+o_during:[`During my period`,`Under menstruation`,`Während der Periode`,`Under mens`,`Podczas miesiączki`],
+o_ovul:[`Ovulation`,`Ægløsning`,`Eisprung`,`Ägglossning`,`Owulacja`],
+o_sex:[`During sex`,`Under sex`,`Beim Sex`,`Vid sex`,`Podczas seksu`],
+o_urine:[`When urinating`,`Ved vandladning`,`Beim Wasserlassen`,`Vid urinering`,`Przy oddawaniu moczu`],
+o_stool:[`During bowel movements`,`Ved afføring`,`Beim Stuhlgang`,`Vid avföring`,`Przy wypróżnianiu`],
+o_const:[`Constant`,`Konstant`,`Dauerhaft`,`Konstant`,`Stały`],
+q_bleed:[`Bleeding`,`Blødning`,`Blutung`,`Blödning`,`Krwawienie`],
+o_heavy:[`Very heavy (soaking through in under 2 hours)`,`Meget kraftig (gennemvædet på under 2 timer)`,`Sehr stark (in unter 2 Stunden durchgeblutet)`,`Mycket kraftig (blöder igenom på under 2 timmar)`,`Bardzo obfite (przesiąka w mniej niż 2 godziny)`],
+o_spot:[`Spotting between periods`,`Pletblødninger mellem menstruationer`,`Zwischenblutungen`,`Mellanblödningar`,`Plamienia między miesiączkami`],
+o_clots:[`Large clots`,`Store blodpropper`,`Große Blutklumpen`,`Stora koagel`,`Duże skrzepy`],
+o_irreg:[`Irregular`,`Uregelmæssig`,`Unregelmäßig`,`Oregelbunden`,`Nieregularne`],
+q_len:[`Cycle length in days (approx.)`,`Cykluslængde i dage (ca.)`,`Zykluslänge in Tagen (ca.)`,`Cykellängd i dagar (ca)`,`Długość cyklu w dniach (ok.)`],
+q_since:[`How long have you had these symptoms?`,`Hvor længe har du haft symptomerne?`,`Seit wann hast du diese Beschwerden?`,`Hur länge har du haft besvären?`,`Od jak dawna masz te objawy?`],
+q_tried:[`What have you already tried?`,`Hvad har du allerede prøvet?`,`Was hast du schon versucht?`,`Vad har du redan provat?`,`Co już próbowałaś?`],
+q_goal:[`What matters most for the doctor to understand?`,`Hvad er vigtigst, at lægen forstår?`,`Was sollte der Arzt / die Ärztin unbedingt verstehen?`,`Vad är viktigast att läkaren förstår?`,`Co jest najważniejsze, żeby lekarz zrozumiał?`],
+q_obs:[`Observations`,`Observationer`,`Beobachtungen`,`Observationer`,`Obserwacje`],
+o_irrc:[`Irregular or missing cycle`,`Uregelmæssig eller udeblivende cyklus`,`Unregelmäßiger oder ausbleibender Zyklus`,`Oregelbunden eller utebliven cykel`,`Nieregularny lub brak cyklu`],
+o_hair:[`Excess body hair`,`Øget behåring`,`Vermehrte Körperbehaarung`,`Ökad kroppsbehåring`,`Nadmierne owłosienie`],
+o_acne:[`Acne`,`Akne`,`Akne`,`Akne`,`Trądzik`],
+o_loss:[`Hair loss`,`Hårtab`,`Haarausfall`,`Håravfall`,`Wypadanie włosów`],
+o_weight:[`Weight gain`,`Vægtøgning`,`Gewichtszunahme`,`Viktuppgång`,`Przyrost masy ciała`],
+o_tired:[`Fatigue`,`Træthed`,`Erschöpfung`,`Utmattning`,`Zmęczenie`],
+o_baby:[`Wish to conceive`,`Ønske om graviditet`,`Kinderwunsch`,`Önskan om graviditet`,`Chęć zajścia w ciążę`],
+q_lmp:[`Last period (date)`,`Seneste menstruation (dato)`,`Letzte Periode (Datum)`,`Senaste mens (datum)`,`Ostatnia miesiączka (data)`],
+q_fam:[`Family history (diabetes, PCOS …)`,`Familiehistorie (diabetes, PCOS …)`,`Familiengeschichte (Diabetes, PCOS …)`,`Släkthistoria (diabetes, PCOS …)`,`Wywiad rodzinny (cukrzyca, PCOS …)`],
+q_ask:[`Questions for the doctor`,`Spørgsmål til lægen`,`Fragen an die Ärztin / den Arzt`,`Frågor till läkaren`,`Pytania do lekarza`],
+q_load:[`How much do the symptoms affect you? (0–10)`,`Hvor meget belaster symptomerne dig? (0–10)`,`Wie sehr belasten dich die Beschwerden? (0–10)`,`Hur mycket påverkar besvären dig? (0–10)`,`Jak bardzo objawy cię obciążają? (0–10)`],
+q_main:[`Main complaint in your own words`,`Hovedproblem med dine egne ord`,`Hauptbeschwerde in eigenen Worten`,`Huvudbesvär med egna ord`,`Główna dolegliwość własnymi słowami`],
+q_meds:[`Medication / contraception`,`Medicin / prævention`,`Medikamente / Verhütung`,`Läkemedel / preventivmedel`,`Leki / antykoncepcja`],
+q_want:[`I would like …`,`Jeg ønsker …`,`Ich wünsche mir …`,`Jag önskar …`,`Chciałabym …`],
+o_exam:[`An examination`,`En undersøgelse`,`Eine Untersuchung`,`En undersökning`,`Badania`],
+o_second:[`A second opinion`,`En second opinion`,`Eine Zweitmeinung`,`En second opinion`,`Drugiej opinii`],
+o_ref:[`A referral to a specialist`,`Henvisning til speciallæge`,`Eine Überweisung an eine Fachärztin / einen Facharzt`,`En remiss till specialist`,`Skierowania do specjalisty`],
+o_written:[`A written summary`,`Et skriftligt resumé`,`Eine schriftliche Zusammenfassung`,`En skriftlig sammanfattning`,`Pisemnego podsumowania`],
+o_serious:[`A serious investigation`,`En seriøs udredning`,`Eine ernsthafte Abklärung`,`En seriös utredning`,`Poważnej diagnostyki`],
+gen:[`Create summary`,`Opret resumé`,`Zusammenfassung erstellen`,`Skapa sammanfattning`,`Utwórz podsumowanie`],
+cpy:[`Copy`,`Kopiér`,`Kopieren`,`Kopiera`,`Kopiuj`],
+cpd:[`Copied ✓`,`Kopieret ✓`,`Kopiert ✓`,`Kopierat ✓`,`Skopiowano ✓`],
+prt:[`Print`,`Print`,`Drucken`,`Skriv ut`,`Drukuj`],
+sumHead:[`SUMMARY FOR MY DOCTOR'S VISIT`,`RESUMÉ TIL MIT LÆGEBESØG`,`ZUSAMMENFASSUNG FÜR MEINEN ARZTBESUCH`,`SAMMANFATTNING INFÖR MITT LÄKARBESÖK`,`PODSUMOWANIE NA WIZYTĘ U LEKARZA`],
+sumEnd:[`I ask for a serious investigation and an explanation of the next steps.`,`Jeg beder om en seriøs udredning og en forklaring af de næste skridt.`,`Ich bitte um eine ernsthafte Abklärung und eine Erklärung der nächsten Schritte.`,`Jag ber om en seriös utredning och en förklaring av nästa steg.`,`Proszę o poważną diagnostykę i wyjaśnienie kolejnych kroków.`],
+mapTitle:[`Doctor map`,`Lægekort`,`Ärztekarte`,`Läkarkarta`,`Mapa lekarzy`],
+mapLead:[`Recommended by women. Filter by condition and read their experiences.`,`Anbefalet af kvinder. Filtrér efter tilstand og læs deres erfaringer.`,`Von Frauen empfohlen. Filtere nach Beschwerden und lies ihre Erfahrungen.`,`Rekommenderade av kvinnor. Filtrera efter besvär och läs deras erfarenheter.`,`Polecani przez kobiety. Filtruj według schorzenia i czytaj doświadczenia.`],
+shareExp:[`Share your experience`,`Del din erfaring`,`Teile deine Erfahrung`,`Dela din erfarenhet`,`Podziel się doświadczeniem`],
+publish:[`Publish`,`Udgiv`,`Veröffentlichen`,`Publicera`,`Opublikuj`],
+sp_gyn:[`Gynaecologist`,`Gynækolog`,`Gynäkologin`,`Gynekolog`,`Ginekolożka`],
+sp_endoc:[`Endocrinology`,`Endokrinologi`,`Endokrinologie`,`Endokrinologi`,`Endokrynologia`],
+sp_meno:[`Menopause clinic`,`Overgangsalder-klinik`,`Menopause-Sprechstunde`,`Klimakteriemottagning`,`Poradnia menopauzy`],
+sp_endoz:[`Endometriosis centre`,`Endometriosecenter`,`Endometriose-Zentrum`,`Endometrioscentrum`,`Centrum endometriozy`],
+rv1:[`Took more than 45 minutes for me and never questioned me. After years, finally a referral.`,`Brugte over 45 minutter på mig og stillede aldrig spørgsmålstegn ved mig. Efter flere år endelig en henvisning.`,`Hat sich über 45 Minuten Zeit genommen und mich nie angezweifelt. Nach Jahren endlich eine Überweisung.`,`Tog sig över 45 minuter för mig och ifrågasatte mig aldrig. Efter flera år äntligen en remiss.`,`Poświęciła mi ponad 45 minut i nigdy nie podważała moich słów. Po latach wreszcie skierowanie.`],
+rv2:[`Very empathetic, explains every option.`,`Meget empatisk, forklarer alle muligheder.`,`Sehr einfühlsam, erklärt jede Option.`,`Mycket empatisk, förklarar alla alternativ.`,`Bardzo empatyczna, wyjaśnia każdą opcję.`],
+rv3:[`PCOS was finally taken seriously, clear lab work-up.`,`PCOS blev endelig taget alvorligt, tydelig laboratorieudredning.`,`PCOS wurde endlich ernst genommen, klare Laborabklärung.`,`PCOS togs äntligen på allvar, tydlig labbutredning.`,`PCOS wreszcie potraktowano poważnie, jasna diagnostyka laboratoryjna.`],
+rv4:[`Great explanations, no time pressure.`,`Fremragende forklaringer, intet tidspres.`,`Tolle Erklärungen, kein Zeitdruck.`,`Fantastiska förklaringar, ingen tidspress.`,`Świetne wyjaśnienia, bez pośpiechu.`],
+rv5:[`Helped in a structured way with an unfulfilled wish for a child.`,`Hjalp struktureret ved uopfyldt børneønske.`,`Hat bei unerfülltem Kinderwunsch strukturiert geholfen.`,`Hjälpte till på ett strukturerat sätt vid ouppfylld önskan om barn.`,`Pomogła w uporządkowany sposób przy niespełnionym pragnieniu dziecka.`],
+rv6:[`Finally someone who doesn't brush off hot flushes.`,`Endelig én, der ikke affejer hedeture.`,`Endlich jemand, der Hitzewallungen nicht abtut.`,`Äntligen någon som inte viftar bort värmevallningar.`,`Wreszcie ktoś, kto nie bagatelizuje uderzeń gorąca.`],
+rv7:[`Specialised ultrasound, very competent.`,`Specialiseret ultralyd, meget kompetent.`,`Spezialisierter Ultraschall, sehr kompetent.`,`Specialiserat ultraljud, mycket kompetent.`,`Specjalistyczne USG, bardzo kompetentna.`],
+rv8:[`For the first time I felt understood.`,`For første gang følte jeg mig forstået.`,`Zum ersten Mal habe ich mich verstanden gefühlt.`,`För första gången kände jag mig förstådd.`,`Pierwszy raz poczułam się zrozumiana.`],
+chatLead:[`Exchange with women who understand you. You appear under a pseudonym.`,`Udveksl med kvinder, der forstår dig. Du optræder under et pseudonym.`,`Tausche dich mit Frauen aus, die dich verstehen. Du erscheinst unter einem Pseudonym.`,`Utbyt erfarenheter med kvinnor som förstår dig. Du visas under ett pseudonym.`,`Rozmawiaj z kobietami, które cię rozumieją. Występujesz pod pseudonimem.`],
+chatPh:[`Write a message…`,`Skriv en besked…`,`Nachricht schreiben…`,`Skriv ett meddelande…`,`Napisz wiadomość…`],
+send:[`Send`,`Send`,`Senden`,`Skicka`,`Wyślij`],
+posts:[`posts`,`opslag`,`Beiträge`,`inlägg`,`wpisów`],
+gr_cyc:[`Cycle & everyday life`,`Cyklus & hverdag`,`Zyklus & Alltag`,`Cykel & vardag`,`Cykl i codzienność`],
+c1:[`Has anyone tried inositol?`,`Har nogen erfaring med inositol?`,`Hat jemand Erfahrung mit Inositol?`,`Har någon provat inositol?`,`Czy ktoś próbował inozytolu?`],
+c2:[`Yes, it stabilised my cycle after about 3 months.`,`Ja, det stabiliserede min cyklus efter ca. 3 måneder.`,`Ja, bei mir hat es den Zyklus nach etwa 3 Monaten stabilisiert.`,`Ja, det stabiliserade min cykel efter ungefär 3 månader.`,`Tak, ustabilizował mój cykl po ok. 3 miesiącach.`],
+c3:[`How did you get to a diagnosis?`,`Hvordan nåede I frem til en diagnose?`,`Wie seid ihr zu einer Diagnose gekommen?`,`Hur kom ni fram till en diagnos?`,`Jak doszłyście do diagnozy?`],
+c4:[`Keep a symptom diary and look for a specialist centre.`,`Før en symptomdagbog og find et specialiseret center.`,`Führe ein Symptomtagebuch und such dir ein Spezialzentrum.`,`För en symtomdagbok och sök upp ett specialistcentrum.`,`Prowadź dziennik objawów i poszukaj ośrodka specjalistycznego.`],
+c5:[`We've been trying for 8 months – when did you get checked?`,`Vi har prøvet i 8 måneder – hvornår fik I det undersøgt?`,`Wir üben seit 8 Monaten – wann habt ihr es abklären lassen?`,`Vi har försökt i 8 månader – när lät ni undersöka er?`,`Staramy się od 8 miesięcy – kiedy się zbadałyście?`],
+c6:[`Sleep problems are the worst part for me. Tips?`,`Søvnproblemer er det værste for mig. Tips?`,`Schlafprobleme sind für mich das Schlimmste. Tipps?`,`Sömnproblem är det värsta för mig. Tips?`,`Najgorsze są u mnie problemy ze snem. Jakieś wskazówki?`],
+c7:[`What helps with period pain at work?`,`Hvad hjælper mod menstruationssmerter på arbejdet?`,`Was hilft bei Periodenschmerzen auf der Arbeit?`,`Vad hjälper mot mensvärk på jobbet?`,`Co pomaga na bóle miesiączkowe w pracy?`],
+docTitle:[`Dr. Support Group`,`Læge-supportgruppe`,`Dr.-Support-Gruppe`,`Dr. Support-grupp`,`Grupa wsparcia lekarzy`],
+docLead:[`Doctors and professionals who voluntarily answer outside office hours – e.g. to help you assess useful examinations.`,`Læger og fagfolk, der frivilligt svarer uden for åbningstid – fx for at hjælpe med at vurdere relevante undersøgelser.`,`Ärztinnen, Ärzte und Fachpersonen, die freiwillig auch außerhalb der Sprechzeiten antworten – z. B. um sinnvolle Untersuchungen einzuordnen.`,`Läkare och fackpersoner som frivilligt svarar utanför mottagningstid – t.ex. för att hjälpa dig bedöma lämpliga undersökningar.`,`Lekarze i specjaliści, którzy dobrowolnie odpowiadają po godzinach – np. pomagają ocenić sensowne badania.`],
+docAlert:[`Not an emergency channel. For acute symptoms: 1813 (medical helpline) or 112.`,`Ikke en nødkanal. Ved akutte symptomer: 1813 (Lægevagten) eller 112.`,`Kein Notfallkanal. Bei akuten Beschwerden: 1813 (ärztlicher Bereitschaftsdienst) oder 112.`,`Inte en akutkanal. Vid akuta besvär: 1813 (sjukvårdsrådgivning) eller 112.`,`To nie jest kanał alarmowy. Przy ostrych objawach: 1813 (dyżur lekarski) lub 112.`],
+pr_gyn:[`Gynaecology · Endometriosis`,`Gynækologi · Endometriose`,`Gynäkologie · Endometriose`,`Gynekologi · Endometrios`,`Ginekologia · Endometrioza`],
+pr_endo:[`Endocrinology · PCOS`,`Endokrinologi · PCOS`,`Endokrinologie · PCOS`,`Endokrinologi · PCOS`,`Endokrynologia · PCOS`],
+pr_meno:[`Menopause`,`Overgangsalder`,`Menopause`,`Klimakteriet`,`Menopauza`],
+pr_mid:[`Midwife · Cycle · Fertility`,`Jordemoder · Cyklus · Fertilitet`,`Hebamme · Zyklus · Fruchtbarkeit`,`Barnmorska · Cykel · Fertilitet`,`Położna · Cykl · Płodność`],
+av1:[`Mon–Thu 7–9 pm`,`man–tor 19–21`,`Mo–Do 19–21 Uhr`,`mån–tors 19–21`,`pn–czw 19–21`],
+av2:[`Tue & Thu 8–10 pm`,`tirs & tors 20–22`,`Di & Do 20–22 Uhr`,`tis & tors 20–22`,`wt i czw 20–22`],
+av3:[`Sat 10 am–12 pm`,`lør 10–12`,`Sa 10–12 Uhr`,`lör 10–12`,`sob 10–12`],
+av4:[`Daily 6–8 pm`,`dagligt 18–20`,`Täglich 18–20 Uhr`,`dagligen 18–20`,`codziennie 18–20`],
+midwife:[`Midwife`,`Jordemoder`,`Hebamme`,`Barnmorska`,`Położna`],
+on:[`Available now`,`Tilgængelig nu`,`Jetzt erreichbar`,`Tillgänglig nu`,`Dostępna teraz`],
+off:[`Currently offline`,`Offline lige nu`,`Derzeit offline`,`Offline just nu`,`Obecnie offline`],
+reqTitle:[`Send a request`,`Send en forespørgsel`,`Anfrage senden`,`Skicka en förfrågan`,`Wyślij zapytanie`],
+reqTo:[`To`,`Til`,`An`,`Till`,`Do`],
+reqQ:[`Your question`,`Dit spørgsmål`,`Deine Frage`,`Din fråga`,`Twoje pytanie`],
+reqPh:[`e.g. I've had severe period pain for 2 years. Which examination should I bring up?`,`fx Jeg har haft kraftige menstruationssmerter i 2 år. Hvilken undersøgelse bør jeg nævne?`,`z. B. Ich habe seit 2 Jahren starke Periodenschmerzen. Welche Untersuchung sollte ich ansprechen?`,`t.ex. Jag har haft kraftig mensvärk i 2 år. Vilken undersökning bör jag ta upp?`,`np. Od 2 lat mam silne bóle miesiączkowe. O jakie badanie powinnam poprosić?`],
+reqSend:[`Send request`,`Send forespørgsel`,`Anfrage senden`,`Skicka förfrågan`,`Wyślij zapytanie`],
+pend:[`Awaiting reply`,`Afventer svar`,`Wartet auf Antwort`,`Väntar på svar`,`Oczekuje na odpowiedź`],
+toWord:[`To`,`Til`,`An`,`Till`,`Do`],
+trFrom:[`Translated from`,`Oversat fra`,`Übersetzt aus`,`Översatt från`,`Przetłumaczone z`],
+showOrig:[`Show original`,`Vis original`,`Original anzeigen`,`Visa original`,`Pokaż oryginał`],
+showTr:[`Show translation`,`Vis oversættelse`,`Übersetzung anzeigen`,`Visa översättning`,`Pokaż tłumaczenie`],
+trFail:[`Translation unavailable`,`Oversættelse ikke tilgængelig`,`Übersetzung nicht verfügbar`,`Översättning inte tillgänglig`,`Tłumaczenie niedostępne`],
+trWait:[`Translating…`,`Oversætter…`,`Übersetze…`,`Översätter…`,`Tłumaczenie…`],
+chatTrNote:[`All messages are automatically translated into your language:`,`Alle beskeder oversættes automatisk til dit sprog:`,`Alle Nachrichten werden automatisch in deine Sprache übersetzt:`,`Alla meddelanden översätts automatiskt till ditt språk:`,`Wszystkie wiadomości są automatycznie tłumaczone na twój język:`]
 };
 let LI=Math.max(0,LANGS.findIndex(l=>l[0]===store.get('lang','en')));
 const t=k=>{const a=D[k];return a?(a[LI]||a[0]):k};
@@ -673,34 +683,91 @@ function showDoc(d,noScroll){
 }
 
 /* ---------- CHAT ---------- */
+// seed messages: [alias, text key, language the message was originally written in]
 const GROUPS={
- pcos:[['Birch 21','c1'],['Clover 48','c2']],
- endo:[['Poppy 12','c3'],['Thistle 33','c4']],
- fert:[['Rosemary 77','c5']],
- meno:[['Juniper 64','c6']],
- cyc:[['Lavender 52','c7']]
+ pcos:[['Birch 21','c1','da'],['Clover 48','c2','en']],
+ endo:[['Poppy 12','c3','de'],['Thistle 33','c4','sv']],
+ fert:[['Rosemary 77','c5','pl']],
+ meno:[['Juniper 64','c6','sv']],
+ cyc:[['Lavender 52','c7','de']]
 };
 let grp='pcos';
 const gname=g=>g==='cyc'?t('gr_cyc'):t('tp_'+g);
+const langIdx=c=>LANGS.findIndex(l=>l[0]===c);
+const langName=c=>LANGS[langIdx(c)][1];
+const userMsgs=g=>store.get('chat_'+g,[]).map(x=>Array.isArray(x)?{a:x[0],text:x[1],lang:'en'}:x);
+const TRC=store.get('trc',{});
+const showOrig=new Set();
+let renderTok=0;
+// Translation: on-device browser Translator API if available, otherwise MyMemory (free web service).
+async function translateText(text,from,to){
+  const key=from+'>'+to+'|'+text;
+  if(TRC[key])return TRC[key];
+  let out=null;
+  try{
+    if(window.Translator){
+      const av=await Promise.race([Translator.availability({sourceLanguage:from,targetLanguage:to}),new Promise(r=>setTimeout(()=>r('timeout'),1500))]);
+      if(av==='available'){const tr=await Translator.create({sourceLanguage:from,targetLanguage:to});out=await Promise.race([tr.translate(text),new Promise(r=>setTimeout(()=>r(null),4000))])}
+    }
+  }catch(e){}
+  if(!out&&text.length<=450){
+    try{
+      const r=await fetch('https://api.mymemory.translated.net/get?q='+encodeURIComponent(text)+'&langpair='+from+'|'+to);
+      const j=await r.json();
+      const tx=j&&j.responseData&&j.responseData.translatedText;
+      if(tx&&!/MYMEMORY WARNING|INVALID/i.test(tx))out=tx;
+    }catch(e){}
+  }
+  if(out){TRC[key]=out;store.set('trc',TRC)}
+  return out;
+}
 function renderGroups(){
   $('#groups').innerHTML='';
   Object.keys(GROUPS).forEach(g=>{
-    const n=GROUPS[g].length+store.get('chat_'+g,[]).length;
+    const n=GROUPS[g].length+userMsgs(g).length;
     const b=el(`<button class="group ${g===grp?'on':''}">${gname(g)}<small>${n} ${t('posts')}</small></button>`);
     b.onclick=()=>{grp=g;renderMsgs()};$('#groups').appendChild(b);
   });
 }
 function renderMsgs(){
   renderGroups();
-  const me=store.get('user',{}).alias;
-  const all=[...GROUPS[grp].map(([a,k])=>[a,t(k)]),...store.get('chat_'+grp,[])];
+  const tok=++renderTok, cur=LANGS[LI][0], me=store.get('user',{}).alias;
+  $('#trNote').textContent=t('chatTrNote')+' '+LANGS[LI][1];
+  const list=[
+    ...GROUPS[grp].map(([a,k,from],i)=>({id:grp+':s'+i,a,from,orig:D[k][langIdx(from)],pre:t(k)})),
+    ...userMsgs(grp).map((m,i)=>({id:grp+':u'+i,a:m.a,from:m.lang||'en',orig:m.text,pre:null}))
+  ];
   const box=$('#msgs'); box.innerHTML='';
-  all.forEach(([a,x])=>{const m=el(`<div class="msg ${a===me?'me':''}"><small></small><span></span></div>`);m.querySelector('small').textContent=a;m.querySelector('span').textContent=x;box.appendChild(m)});
+  list.forEach(m=>{
+    const node=el(`<div class="msg ${m.a===me?'me':''}"><small></small><span class="tx"></span><div class="trmeta"></div></div>`);
+    node.querySelector('small').textContent=m.a;
+    const tx=node.querySelector('.tx'), meta=node.querySelector('.trmeta');
+    box.appendChild(node);
+    if(m.from===cur){tx.textContent=m.orig;meta.remove();return}
+    const paint=(translated)=>{
+      const showingOrig=showOrig.has(m.id)||!translated;
+      tx.textContent=showingOrig?m.orig:translated;
+      meta.innerHTML='';
+      const lab=document.createElement('span');
+      lab.textContent=translated?`${t('trFrom')} ${langName(m.from)}`:t('trFail');
+      meta.appendChild(lab);
+      if(translated){
+        const btn=document.createElement('button');
+        btn.textContent=t(showingOrig?'showTr':'showOrig');
+        meta.appendChild(document.createTextNode(' · '));
+        btn.onclick=()=>{showOrig.has(m.id)?showOrig.delete(m.id):showOrig.add(m.id);paint(translated)};
+        meta.appendChild(btn);
+      }
+    };
+    if(m.pre){paint(m.pre);return}
+    tx.textContent=m.orig; meta.textContent=t('trWait');
+    translateText(m.orig,m.from,cur).then(r=>{if(tok===renderTok)paint(r)});
+  });
   box.scrollTop=box.scrollHeight;
 }
 function sendMsg(){
   const v=$('#chatIn').value.trim(); if(!v)return;
-  const arr=store.get('chat_'+grp,[]); arr.push([store.get('user',{}).alias,v]); store.set('chat_'+grp,arr);
+  const arr=store.get('chat_'+grp,[]); arr.push({a:store.get('user',{}).alias,text:v,lang:LANGS[LI][0]}); store.set('chat_'+grp,arr);
   $('#chatIn').value=''; renderMsgs();
 }
 $('#chatSend').onclick=sendMsg; $('#chatIn').addEventListener('keydown',e=>{if(e.key==='Enter')sendMsg()});
