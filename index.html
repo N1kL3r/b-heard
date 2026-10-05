@@ -1,0 +1,726 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>B Heard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{
+  --beige:#F4ECDF; --beige-2:#EBDFCB; --paper:#FBF7F0;
+  --orange:#B4521E; --orange-d:#8F3E13;
+  --blue:#93A8BF; --blue-l:#DCE5EE; --blue-d:#5F7894;
+  --ink:#2B2520; --muted:#7A6F63; --line:#E0D3BE;
+  --r:16px;
+}
+*{box-sizing:border-box;margin:0}
+body{font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;background:var(--beige);color:var(--ink);font-weight:400;line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-weight:500;letter-spacing:-.02em;line-height:1.15}
+h1{font-size:2rem} h2{font-size:1.5rem;margin-bottom:.4rem} h3{font-size:1.05rem}
+p.lead{color:var(--muted);margin-bottom:1.2rem}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+.btn{background:var(--orange);color:#fff;border:0;border-radius:999px;padding:.7rem 1.4rem;font-weight:500;transition:background .15s}
+.btn:hover{background:var(--orange-d)}
+.btn.ghost{background:transparent;color:var(--orange);border:1px solid var(--orange)}
+.btn.ghost:hover{background:var(--orange);color:#fff}
+.btn.sm{padding:.45rem 1rem;font-size:.9rem}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:1.2rem}
+.chip{border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:.35rem .9rem;font-size:.88rem;white-space:nowrap}
+.chip.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.chips{display:flex;gap:.5rem;flex-wrap:wrap;margin:.8rem 0 1.2rem}
+.tag{display:inline-block;background:var(--blue-l);color:var(--blue-d);border-radius:999px;padding:.1rem .65rem;font-size:.78rem;margin:0 .3rem .3rem 0}
+.tag.o{background:#F2DCCB;color:var(--orange-d)}
+.muted{color:var(--muted);font-size:.88rem}
+input[type=text],input[type=password],input[type=number],select,textarea{width:100%;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:.7rem .9rem;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--blue-d)}
+label{display:block;font-size:.9rem;margin:.9rem 0 .3rem}
+.demo{font-size:.75rem;color:var(--muted);background:var(--beige-2);padding:.4rem .8rem;border-radius:8px;margin-bottom:1rem}
+
+/* login */
+#login{min-height:100vh;display:grid;place-items:center;padding:1.5rem}
+#login .box{max-width:420px;width:100%}
+.logo{font-size:1.1rem;font-weight:500;color:var(--orange);letter-spacing:.02em;margin-bottom:2.5rem}
+.logo i{display:inline-block;width:.7em;height:.7em;border-radius:50%;background:var(--orange);margin-inline-end:.5em;box-shadow:.55em 0 0 -.05em var(--blue)}
+.err{color:#A12;font-size:.88rem;min-height:1.3em;margin-top:.4rem}
+.check{display:flex;gap:.6rem;align-items:flex-start;font-size:.85rem;color:var(--muted);margin:1rem 0}
+.check input{margin-top:.25rem;accent-color:var(--orange)}
+
+/* shell */
+#app{display:none;min-height:100vh}
+nav{position:fixed;z-index:1000;background:var(--paper);border-top:1px solid var(--line);bottom:0;left:0;right:0;display:flex;justify-content:space-around;padding:.3rem .2rem calc(.3rem + env(safe-area-inset-bottom))}
+nav button{background:none;border:0;flex:1;padding:.5rem .1rem;font-size:.68rem;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:.2rem}
+nav button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+nav button.on{color:var(--orange)}
+nav .brand{display:none}
+main{padding:1.4rem 1.1rem 6rem;max-width:880px;margin:0 auto}
+section.view{display:none}
+section.view.on{display:block}
+@media(min-width:800px){
+  nav{top:0;bottom:auto;right:auto;inset-inline:0 auto;width:220px;height:100vh;flex-direction:column;justify-content:flex-start;border-top:0;border-inline-end:1px solid var(--line);padding:1.6rem 1rem;gap:.2rem}
+  nav .brand{display:block;color:var(--orange);font-weight:500;margin:0 .6rem 1.6rem}
+  nav button{flex:none;flex-direction:row;font-size:.95rem;gap:.8rem;padding:.7rem .8rem;border-radius:12px;justify-content:flex-start}
+  nav button.on{background:var(--beige)}
+  main{margin-inline-start:220px;max-width:none;padding:2.4rem 3rem 3rem}
+  main>section{max-width:880px;margin:0 auto}
+}
+
+/* home */
+.hero{padding:1.8rem;border-radius:22px;background:linear-gradient(135deg,var(--beige-2),var(--blue-l));margin-bottom:1.2rem}
+.moods{display:grid;grid-template-columns:repeat(5,1fr);gap:.5rem;margin-top:1rem}
+.mood{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:.8rem .2rem;font-size:.82rem;text-align:center}
+.mood b{display:block;font-size:1.4rem;font-weight:400;margin-bottom:.15rem}
+.mood.on{border-color:var(--orange);background:#F8E6D8}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.8rem;margin-top:1.2rem}
+.tile{text-align:left;background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:1.1rem}
+.tile:hover{border-color:var(--orange)}
+.tile h3{color:var(--orange);margin-bottom:.2rem}
+.tile span{color:var(--muted);font-size:.87rem}
+
+/* knowledge */
+.summary{background:var(--blue-l);border-color:transparent}
+.summary ul{padding-left:1.1rem;margin-top:.5rem}
+.paper{padding:1rem 0;border-top:1px solid var(--line)}
+.langsel{width:auto;padding:.4rem .7rem;border-radius:999px;font-size:.85rem}
+.nav-lang{margin:auto .4rem .4rem}
+@media(max-width:799px){.nav-lang{display:none}.toplang{display:block!important}}
+.toplang{display:none;text-align:end;margin-bottom:.6rem}
+.paper h3{font-size:1rem;margin-bottom:.2rem}
+
+/* forms */
+.formgrid{display:grid;gap:.8rem}
+.opts{display:flex;flex-wrap:wrap;gap:.4rem}
+.opts label{display:inline-flex;align-items:center;gap:.4rem;margin:0;background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:.35rem .8rem;font-size:.88rem}
+.opts input{accent-color:var(--orange)}
+input[type=range]{width:100%;accent-color:var(--orange)}
+.out{white-space:pre-wrap;font-size:.92rem;background:#fff;border:1px dashed var(--blue-d);border-radius:12px;padding:1rem;margin-top:1rem}
+
+/* map */
+#map{height:340px;border-radius:var(--r);border:1px solid var(--line);z-index:1}
+.dr{padding:.9rem 0;border-top:1px solid var(--line);cursor:pointer}
+.dr:hover h3{color:var(--orange)}
+.stars{color:var(--orange);letter-spacing:.1em}
+.review{background:var(--beige);border-radius:12px;padding:.8rem;margin-top:.6rem;font-size:.9rem}
+.leaflet-container{font-family:inherit}
+
+/* chat */
+.chatbox{display:grid;gap:1rem}
+@media(min-width:800px){.chatbox{grid-template-columns:230px 1fr}}
+.groups{display:flex;gap:.5rem;overflow-x:auto}
+@media(min-width:800px){.groups{flex-direction:column;overflow:visible}}
+.group{text-align:left;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:.7rem .9rem;flex:none}
+.group.on{border-color:var(--orange);background:#F8E6D8}
+.group small{display:block;color:var(--muted)}
+.msgs{height:360px;overflow-y:auto;display:flex;flex-direction:column;gap:.6rem;padding:1rem}
+.msg{max-width:82%;background:var(--beige);border-radius:14px;padding:.55rem .85rem;font-size:.92rem}
+.msg small{display:block;color:var(--blue-d);font-size:.74rem}
+.msg.me{align-self:flex-end;background:var(--blue);color:#fff;}
+.msg.me small{color:#E8EEF4}
+.send{display:flex;gap:.5rem;margin-top:.6rem}
+.pro{display:flex;gap:1rem;align-items:center;padding:.9rem 0;border-top:1px solid var(--line)}
+.avatar{width:46px;height:46px;border-radius:50%;background:var(--blue);color:#fff;display:grid;place-items:center;flex:none;font-weight:500}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#7AA57A;margin-inline-end:.35rem}
+.dot.off{background:#C9BBA5}
+.alert{background:#F2DCCB;color:var(--orange-d);border-radius:12px;padding:.7rem 1rem;font-size:.86rem;margin-bottom:1rem}
+.brand-mark{font-family:"Fredoka","Baloo 2",ui-rounded,"Arial Rounded MT Bold","Helvetica Neue",sans-serif;font-weight:700;letter-spacing:-.04em;color:#4A2A16}
+.brand-mark .hl{-webkit-text-stroke:.07em var(--blue);paint-order:stroke fill}
+.home-brand{font-size:3.6rem;margin:.2rem 0 1.2rem;line-height:1}
+.tracker{margin-top:1.1rem;padding-top:1rem;border-top:1px solid rgba(43,37,32,.12)}
+.tracker h3{font-size:.9rem;font-weight:500;margin-bottom:.6rem}
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:.3rem}
+.day{background:none;border:0;display:flex;flex-direction:column;align-items:center;gap:.3rem;font-size:.72rem;color:var(--muted);padding:.2rem 0}
+.day i{font-style:normal;width:2.3rem;height:2.3rem;border-radius:50%;display:grid;place-items:center;font-size:1.05rem;background:var(--paper);border:1px dashed var(--line);color:var(--ink)}
+.day.has i{border:1px solid var(--blue);background:var(--blue-l)}
+.day.sel i{outline:2px solid var(--orange);outline-offset:2px}
+.day.sel{color:var(--orange)}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login">
+  <div class="box">
+    <div style="text-align:end;margin-bottom:1rem"><select class="langsel" id="langLogin" aria-label="Language"></select></div>
+    <div class="logo brand-mark" style="font-size:2.2rem">B <span class="hl">H</span><span class="hl">e</span>a<span class="hl">r</span>d</div>
+    <h1 data-i="loginH"></h1>
+    <p class="lead" style="margin-top:.8rem" data-i="loginSub"></p>
+    <label for="cpr" data-i="cprLabel"></label>
+    <input id="cpr" type="password" inputmode="numeric" maxlength="11" placeholder="DDMMYY-XXXX" autocomplete="off" dir="ltr">
+    <div class="err" id="cprErr"></div>
+    <label class="check"><input type="checkbox" id="consent"><span data-i="consent"></span></label>
+    <button class="btn" style="width:100%" id="loginBtn" data-i="login"></button>
+    <p class="muted" style="margin-top:1.2rem" data-i="proto"></p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+<nav id="nav">
+  <div class="brand brand-mark"><span style="font-size:1.4rem">B <span class="hl">H</span><span class="hl">e</span>a<span class="hl">r</span>d</span></div>
+</nav>
+<main>
+<div class="toplang"><select class="langsel" id="langTop" aria-label="Language"></select></div>
+
+<section class="view" id="v-home">
+  <div class="brand-mark home-brand" aria-label="B Heard">B <span class="hl">H</span><span class="hl">e</span>a<span class="hl">r</span>d</div>
+  <div class="hero">
+    <p class="muted" id="dateLine"></p>
+    <h1 id="greet"></h1>
+    <p style="margin-top:.5rem" data-i="howAre"></p>
+    <div class="moods" id="moods"></div>
+    <p id="moodReply" style="margin-top:1rem;min-height:1.5em"></p>
+    <div id="tracker"></div>
+  </div>
+  <h3 data-i="whereTo"></h3>
+  <div class="tiles" id="tiles"></div>
+</section>
+
+<section class="view" id="v-know">
+  <h2 data-i="nav_know"></h2>
+  <p class="lead" data-i="knowLead"></p>
+  <div class="chips" id="topicChips"></div>
+  <div id="topicBody"></div>
+</section>
+
+<section class="view" id="v-prep">
+  <h2 data-i="prepTitle"></h2>
+  <p class="lead" data-i="prepLead"></p>
+  <div class="chips" id="formChips"></div>
+  <div class="card"><div class="formgrid" id="formBody"></div>
+    <div style="display:flex;gap:.6rem;margin-top:1.2rem;flex-wrap:wrap">
+      <button class="btn" id="genBtn" data-i="gen"></button>
+    </div>
+    <div id="formOut"></div>
+  </div>
+</section>
+
+<section class="view" id="v-map">
+  <h2 data-i="mapTitle"></h2>
+  <p class="lead" data-i="mapLead"></p>
+  <div class="chips" id="mapChips"></div>
+  <div id="map" dir="ltr"></div>
+  <div id="drDetail" class="card" style="margin-top:1rem;display:none"></div>
+  <div id="drList" style="margin-top:.6rem"></div>
+</section>
+
+<section class="view" id="v-chat">
+  <h2 data-i="nav_chat"></h2>
+  <p class="lead" data-i="chatLead"></p>
+  <div class="chatbox">
+    <div class="groups" id="groups"></div>
+    <div class="card" style="padding:0">
+      <div class="msgs" id="msgs"></div>
+      <div class="send" style="padding:0 1rem 1rem"><input type="text" id="chatIn" data-ph="chatPh"><button class="btn" id="chatSend" data-i="send"></button></div>
+    </div>
+  </div>
+</section>
+
+<section class="view" id="v-doc">
+  <h2 data-i="docTitle"></h2>
+  <p class="lead" data-i="docLead"></p>
+  <div class="alert" data-i="docAlert"></div>
+  <div class="card" id="pros"></div>
+  <div class="card" style="margin-top:1rem" id="reqBox">
+    <h3 data-i="reqTitle"></h3>
+    <label data-i="reqTo"></label><select id="reqTo"></select>
+    <label data-i="reqQ"></label><textarea id="reqTxt" rows="4" data-ph="reqPh"></textarea>
+    <button class="btn" style="margin-top:1rem" id="reqBtn" data-i="reqSend"></button>
+    <div id="reqOut"></div>
+  </div>
+</section>
+
+</main>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const $=s=>document.querySelector(s), el=(h)=>{const d=document.createElement('div');d.innerHTML=h.trim();return d.firstChild};
+const store={get:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}},set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+
+/* ---------- I18N ---------- */
+// order: en, da, ar, tr, pl
+const LANGS=[['en','English','en-GB'],['da','Dansk','da-DK'],['ar','العربية','ar'],['tr','Türkçe','tr-TR'],['pl','Polski','pl-PL']];
+const D={
+loginH:[`You'll be taken seriously here.`,`Her bliver du taget alvorligt.`,`هنا يُؤخذ كلامكِ على محمل الجد.`,`Burada ciddiye alınırsın.`,`Tutaj traktujemy cię poważnie.`],
+loginSub:[`Knowledge, experiences and doctors women trust – all in one place.`,`Viden, erfaringer og læger, som kvinder stoler på – samlet ét sted.`,`المعرفة والتجارب والأطباء الذين تثق بهم النساء – في مكان واحد.`,`Bilgi, deneyimler ve kadınların güvendiği doktorlar – tek bir yerde.`,`Wiedza, doświadczenia i lekarze, którym ufają kobiety – w jednym miejscu.`],
+cprLabel:[`CPR number`,`CPR-nummer`,`رقم CPR`,`CPR numarası`,`Numer CPR`],
+cprBad:[`Please enter a valid CPR number (DDMMYY-XXXX).`,`Indtast et gyldigt CPR-nummer (DDMMÅÅ-XXXX).`,`يرجى إدخال رقم CPR صالح (DDMMYY-XXXX).`,`Lütfen geçerli bir CPR numarası girin (GGAAYY-XXXX).`,`Wpisz prawidłowy numer CPR (DDMMRR-XXXX).`],
+cprConsent:[`Please agree to the data processing.`,`Accepter venligst databehandlingen.`,`يرجى الموافقة على معالجة البيانات.`,`Lütfen veri işlemeyi kabul edin.`,`Zaakceptuj przetwarzanie danych.`],
+consent:[`I agree to the processing of my data. My CPR number is never stored in plain text and never visible to others.`,`Jeg accepterer behandlingen af mine data. Mit CPR-nummer gemmes aldrig i klartekst og er aldrig synligt for andre.`,`أوافق على معالجة بياناتي. لا يتم حفظ رقم CPR الخاص بي كنص واضح ولا يظهر للآخرين أبدًا.`,`Verilerimin işlenmesini kabul ediyorum. CPR numaram asla açık metin olarak saklanmaz ve başkalarına görünmez.`,`Wyrażam zgodę na przetwarzanie moich danych. Mój numer CPR nigdy nie jest przechowywany jawnym tekstem ani widoczny dla innych.`],
+login:[`Log in`,`Log ind`,`تسجيل الدخول`,`Giriş yap`,`Zaloguj się`],
+proto:[`Prototype: no real check against the CPR register takes place.`,`Prototype: Der sker ingen reel kontrol mod CPR-registret.`,`نموذج أولي: لا يتم أي تحقق فعلي من سجل CPR.`,`Prototip: CPR kayıt sistemiyle gerçek bir doğrulama yapılmaz.`,`Prototyp: nie ma prawdziwej weryfikacji w rejestrze CPR.`],
+nav_home:[`Home`,`Hjem`,`الرئيسية`,`Ana sayfa`,`Start`],
+nav_know:[`Knowledge`,`Viden`,`المعرفة`,`Bilgi`,`Wiedza`],
+nav_prep:[`Prepare`,`Forbered`,`التحضير`,`Hazırlık`,`Przygotuj`],
+nav_map:[`Map`,`Kort`,`الخريطة`,`Harita`,`Mapa`],
+nav_chat:[`Community`,`Fællesskab`,`المجتمع`,`Topluluk`,`Społeczność`],
+nav_doc:[`Dr. Support`,`Lægehjælp`,`دعم الأطباء`,`Doktor desteği`,`Wsparcie lekarzy`],
+g_morning:[`Good morning`,`Godmorgen`,`صباح الخير`,`Günaydın`,`Dzień dobry`],
+g_day:[`Hello`,`Hej`,`مرحبًا`,`Merhaba`,`Cześć`],
+g_eve:[`Good evening`,`Godaften`,`مساء الخير`,`İyi akşamlar`,`Dobry wieczór`],
+howAre:[`We're glad you're here. How are you feeling today?`,`Dejligt, at du er her. Hvordan har du det i dag?`,`يسعدنا وجودكِ هنا. كيف حالكِ اليوم؟`,`Burada olmana sevindik. Bugün nasıl hissediyorsun?`,`Miło, że jesteś. Jak się dzisiaj czujesz?`],
+whereTo:[`Where would you like to go?`,`Hvor vil du hen?`,`إلى أين تودّين الذهاب؟`,`Nereye gitmek istersin?`,`Dokąd chcesz przejść?`],
+m1:[`Good`,`Godt`,`بخير`,`İyi`,`Dobrze`],
+m2:[`Okay`,`Okay`,`عادي`,`İdare eder`,`Tak sobie`],
+m3:[`Tired`,`Træt`,`متعبة`,`Yorgun`,`Zmęczona`],
+m4:[`In pain`,`Smerter`,`ألم`,`Ağrılı`,`Ból`],
+m5:[`Overwhelmed`,`Overvældet`,`مرهقة`,`Bunalmış`,`Przytłoczona`],
+trackTitle:[`Your past week`,`Din seneste uge`,`أسبوعكِ الماضي`,`Geçen haftan`,`Twój ostatni tydzień`],
+trackMostly:[`Most often this week:`,`Oftest denne uge:`,`الأكثر تكرارًا هذا الأسبوع:`,`Bu hafta en sık:`,`Najczęściej w tym tygodniu:`],
+trackHint:[`Tap a day, then an icon, to log or change how you felt.`,`Tryk på en dag og derefter et ikon for at notere eller ændre, hvordan du havde det.`,`اضغطي على يوم ثم على أيقونة لتسجيل شعورك أو تغييره.`,`Bir güne, sonra bir simgeye dokunarak nasıl hissettiğini kaydet veya değiştir.`,`Dotknij dnia, potem ikony, aby zapisać lub zmienić samopoczucie.`],
+trackToday:[`Today`,`I dag`,`اليوم`,`Bugün`,`Dziś`],
+r1:[`Lovely to hear. Take that energy with you.`,`Dejligt at høre. Tag den energi med dig.`,`جميل أن أسمع ذلك. خذي هذه الطاقة معكِ.`,`Bunu duymak güzel. Bu enerjiyi yanında taşı.`,`Miło to słyszeć. Zabierz tę energię ze sobą.`],
+r2:[`Okay is okay. See if something small could do you good today.`,`Okay er okay. Se om noget småt kunne gøre dig godt i dag.`,`«عادي» لا بأس به. جرّبي شيئًا بسيطًا يريحكِ اليوم.`,`İdare eder de olur. Bugün sana iyi gelecek küçük bir şey bul.`,`„Tak sobie” też jest w porządku. Zrób dziś coś małego dla siebie.`],
+r3:[`Tiredness is a real signal. Feel free to note it down for your next appointment.`,`Træthed er et ægte signal. Skriv den gerne ned til din næste aftale.`,`التعب إشارة حقيقية. دوّنيه لموعدكِ القادم.`,`Yorgunluk gerçek bir işarettir. Bir sonraki randevun için not al.`,`Zmęczenie to realny sygnał. Zanotuj je przed kolejną wizytą.`],
+r4:[`I'm sorry. You can record your symptoms under “Prepare” – or talk about it in the community.`,`Det er jeg ked af. Du kan notere dine symptomer under “Forbered” – eller tale om det i fællesskabet.`,`أنا آسف لذلك. يمكنكِ تسجيل أعراضكِ في «التحضير» أو التحدث عنها في المجتمع.`,`Üzgünüm. Belirtilerini “Hazırlık” bölümüne kaydedebilir veya toplulukta paylaşabilirsin.`,`Przykro mi. Możesz zapisać objawy w „Przygotuj” albo porozmawiać o nich we wspólnocie.`],
+r5:[`You don't have to carry it all alone. People are here for you in the community and at Dr. Support.`,`Du behøver ikke bære det hele alene. Der er mennesker til stede for dig i fællesskabet og hos Lægehjælp.`,`ليس عليكِ أن تحملي كل شيء وحدكِ. هناك أشخاص من أجلكِ في المجتمع وفي دعم الأطباء.`,`Her şeyi tek başına taşımak zorunda değilsin. Toplulukta ve Doktor desteğinde insanlar yanında.`,`Nie musisz dźwigać wszystkiego sama. We wspólnocie i we wsparciu lekarzy są ludzie dla ciebie.`],
+t_know:[`Current research, explained briefly`,`Aktuel forskning, kort forklaret`,`أحدث الأبحاث بشرح موجز`,`Güncel araştırmalar, kısaca anlatıldı`,`Aktualne badania w skrócie`],
+t_prep:[`Describe your symptoms clearly`,`Beskriv dine symptomer tydeligt`,`صِفي أعراضكِ بوضوح`,`Belirtilerini net anlat`,`Opisz objawy jasno`],
+t_map:[`Recommendations from women`,`Anbefalinger fra kvinder`,`توصيات من نساء`,`Kadınlardan öneriler`,`Rekomendacje od kobiet`],
+t_chat:[`Exchange by topic`,`Udveksling efter emne`,`تبادل حسب الموضوع`,`Konuya göre paylaşım`,`Rozmowy według tematu`],
+t_doc:[`Professionals, also after hours`,`Fagfolk, også uden for åbningstid`,`مختصون حتى خارج أوقات الدوام`,`Mesai dışında da uzmanlar`,`Specjaliści także po godzinach`],
+t_prepName:[`Prepare a doctor's visit`,`Forbered lægebesøg`,`التحضير لزيارة الطبيب`,`Doktor ziyaretine hazırlan`,`Przygotuj wizytę u lekarza`],
+knowLead:[`Reviewed research on women's health – with an easy summary for each topic.`,`Gennemgået forskning i kvinders sundhed – med et letforståeligt resumé for hvert emne.`,`أبحاث مُراجَعة حول صحة المرأة – مع ملخص سهل لكل موضوع.`,`Kadın sağlığına dair gözden geçirilmiş araştırmalar – her konu için anlaşılır bir özet.`,`Zweryfikowane badania o zdrowiu kobiet – z przystępnym podsumowaniem każdego tematu.`],
+overview:[`Overview`,`Overblik`,`نظرة عامة`,`Genel bakış`,`Przegląd`],
+studies:[`Reviewed studies`,`Gennemgåede studier`,`دراسات مُراجَعة`,`İncelenmiş çalışmalar`,`Zweryfikowane badania`],
+verified:[`✓ reviewed`,`✓ gennemgået`,`✓ مُراجَع`,`✓ incelendi`,`✓ zweryfikowane`],
+ex:[`Sample study:`,`Eksempelstudie:`,`دراسة مثال:`,`Örnek çalışma:`,`Przykładowe badanie:`],
+ty_review:[`Systematic review`,`Systematisk review`,`مراجعة منهجية`,`Sistematik derleme`,`Przegląd systematyczny`],
+ty_cohort:[`Cohort study`,`Kohortestudie`,`دراسة أترابية`,`Kohort çalışması`,`Badanie kohortowe`],
+ty_rct:[`Randomised trial`,`Randomiseret forsøg`,`تجربة عشوائية`,`Randomize çalışma`,`Badanie randomizowane`],
+ty_guide:[`Guideline`,`Retningslinje`,`إرشادات سريرية`,`Kılavuz`,`Wytyczne`],
+ty_meta:[`Meta-analysis`,`Metaanalyse`,`تحليل تلوي`,`Meta-analiz`,`Metaanaliza`],
+ty_cross:[`Cross-sectional study`,`Tværsnitsstudie`,`دراسة مقطعية`,`Kesitsel çalışma`,`Badanie przekrojowe`],
+tp_endo:[`Endometriosis`,`Endometriose`,`بطانة الرحم المهاجرة`,`Endometriozis`,`Endometrioza`],
+tp_pcos:[`PCOS`,`PCOS`,`متلازمة تكيّس المبايض`,`PCOS`,`PCOS`],
+tp_fert:[`Fertility`,`Fertilitet`,`الخصوبة`,`Doğurganlık`,`Płodność`],
+tp_meno:[`Perimenopause & menopause`,`Perimenopause & overgangsalder`,`ما قبل سنّ اليأس وسنّ اليأس`,`Perimenopoz ve menopoz`,`Perimenopauza i menopauza`],
+tp_cyc:[`Cycle & pain`,`Cyklus & smerter`,`الدورة والألم`,`Döngü ve ağrı`,`Cykl i ból`],
+tp_all:[`All`,`Alle`,`الكل`,`Tümü`,`Wszystkie`],
+endo_s1:[`Diagnosis often takes several years from first symptom to confirmation.`,`Diagnosen tager ofte flere år fra første symptom til bekræftelse.`,`غالبًا يستغرق التشخيص عدة سنوات من أول عَرَض حتى التأكيد.`,`Tanı, ilk belirtiden doğrulamaya kadar çoğu zaman yıllar sürer.`,`Diagnoza często trwa kilka lat od pierwszych objawów do potwierdzenia.`],
+endo_s2:[`Imaging (specialised ultrasound/MRI) can give clues but does not always replace laparoscopy.`,`Billeddiagnostik (specialiseret ultralyd/MR) kan give indikationer, men erstatter ikke altid laparoskopi.`,`قد يعطي التصوير (الموجات فوق الصوتية المتخصصة/الرنين) مؤشرات لكنه لا يغني دائمًا عن التنظير البطني.`,`Görüntüleme (uzman ultrason/MR) ipuçları verebilir ancak laparoskopinin yerini her zaman tutmaz.`,`Obrazowanie (specjalistyczne USG/MRI) daje wskazówki, ale nie zawsze zastępuje laparoskopię.`],
+endo_s3:[`Treatment usually combines pain management, hormone therapy and sometimes surgery.`,`Behandling kombinerer typisk smertebehandling, hormonbehandling og evt. operation.`,`يجمع العلاج عادةً بين تسكين الألم والعلاج الهرموني وأحيانًا الجراحة.`,`Tedavi genellikle ağrı yönetimi, hormon tedavisi ve bazen ameliyatı birleştirir.`,`Leczenie łączy zwykle leczenie bólu, hormony, a czasem operację.`],
+endo_p1:[`Diagnostic delay in endometriosis`,`Diagnostisk forsinkelse ved endometriose`,`التأخر في تشخيص بطانة الرحم المهاجرة`,`Endometriozda tanı gecikmesi`,`Opóźnienie diagnozy w endometriozie`],
+endo_p2:[`Non-invasive diagnostics`,`Non-invasiv diagnostik`,`التشخيص غير الجراحي`,`Non-invaziv tanı`,`Diagnostyka nieinwazyjna`],
+pcos_s1:[`PCOS is one of the most common hormonal conditions in women of reproductive age.`,`PCOS er en af de hyppigste hormonelle tilstande hos kvinder i den fødedygtige alder.`,`المتلازمة من أكثر الاضطرابات الهرمونية شيوعًا لدى النساء في سن الإنجاب.`,`PCOS, doğurganlık çağındaki kadınlarda en sık görülen hormonal durumlardan biridir.`,`PCOS to jedno z najczęstszych zaburzeń hormonalnych u kobiet w wieku rozrodczym.`],
+pcos_s2:[`Diagnosis relies on cycle irregularities, signs of excess androgens and sometimes ultrasound.`,`Diagnosen bygger på cyklusforstyrrelser, tegn på androgenoverskud og evt. ultralyd.`,`يعتمد التشخيص على اضطراب الدورة وعلامات زيادة الأندروجينات وأحيانًا الموجات فوق الصوتية.`,`Tanı; döngü düzensizlikleri, androjen fazlalığı belirtileri ve bazen ultrasona dayanır.`,`Rozpoznanie opiera się na nieregularnych cyklach, objawach nadmiaru androgenów i czasem USG.`],
+pcos_s3:[`Lifestyle, metformin and hormonal treatment are used depending on your goals.`,`Livsstil, metformin og hormonbehandling bruges afhængigt af dine mål.`,`يُستخدم تعديل نمط الحياة والميتفورمين والعلاج الهرموني بحسب أهدافكِ.`,`Hedeflerine göre yaşam tarzı, metformin ve hormon tedavisi kullanılır.`,`Stosuje się styl życia, metforminę i hormony – zależnie od twoich celów.`],
+pcos_p1:[`International PCOS guideline`,`International PCOS-retningslinje`,`الإرشادات الدولية لمتلازمة تكيّس المبايض`,`Uluslararası PCOS kılavuzu`,`Międzynarodowe wytyczne dotyczące PCOS`],
+pcos_p2:[`Insulin resistance in PCOS`,`Insulinresistens ved PCOS`,`مقاومة الأنسولين في PCOS`,`PCOS'ta insülin direnci`,`Insulinooporność w PCOS`],
+fert_s1:[`Fertility declines noticeably from the mid-30s; cycle tracking helps put things in context.`,`Fertiliteten falder mærkbart fra midten af 30'erne; cyklusregistrering hjælper med at vurdere situationen.`,`تنخفض الخصوبة بشكل ملحوظ منذ منتصف الثلاثينيات؛ ومتابعة الدورة تساعد على التقييم.`,`Doğurganlık 30'lu yaşların ortasından itibaren belirgin şekilde azalır; döngü takibi değerlendirmeye yardımcı olur.`,`Płodność wyraźnie spada od połowy trzeciej dekady życia; śledzenie cyklu pomaga ocenić sytuację.`],
+fert_s2:[`Investigation often starts after 12 months without conception (earlier from age 35).`,`Udredning starter ofte efter 12 måneder uden graviditet (tidligere fra 35 år).`,`يبدأ الفحص غالبًا بعد 12 شهرًا دون حمل (أبكر بعد سن 35).`,`Araştırma genellikle 12 aylık başarısız denemeden sonra başlar (35 yaş üstünde daha erken).`,`Diagnostyka zwykle zaczyna się po 12 miesiącach bez ciąży (wcześniej po 35. roku życia).`],
+fert_s3:[`Both partners should be examined.`,`Begge partnere bør undersøges.`,`ينبغي فحص الشريكين معًا.`,`Her iki partner de değerlendirilmelidir.`,`Należy zbadać oboje partnerów.`],
+fert_p1:[`Age and probability of conception`,`Alder og sandsynlighed for graviditet`,`العمر واحتمال الحمل`,`Yaş ve gebelik olasılığı`,`Wiek a prawdopodobieństwo poczęcia`],
+meno_s1:[`Symptoms range from hot flushes to sleep problems and mood changes.`,`Symptomer spænder fra hedeture til søvnproblemer og humørsvingninger.`,`تتراوح الأعراض من الهبات الساخنة إلى اضطراب النوم وتقلّب المزاج.`,`Belirtiler sıcak basmalarından uyku sorunlarına ve duygudurum değişimlerine uzanır.`,`Objawy to m.in. uderzenia gorąca, problemy ze snem i wahania nastroju.`],
+meno_s2:[`Hormone therapy can be helpful; benefits and risks depend on timing and individual factors.`,`Hormonbehandling kan være gavnlig; fordele og risici afhænger af timing og individuelle faktorer.`,`قد يكون العلاج الهرموني مفيدًا؛ وتعتمد فوائده ومخاطره على التوقيت والعوامل الفردية.`,`Hormon tedavisi yararlı olabilir; fayda ve riskler zamanlamaya ve bireysel faktörlere bağlıdır.`,`Hormonoterapia może pomagać; korzyści i ryzyko zależą od momentu i czynników indywidualnych.`],
+meno_s3:[`Non-hormonal options exist.`,`Der findes ikke-hormonelle muligheder.`,`توجد خيارات غير هرمونية.`,`Hormonsuz seçenekler de vardır.`,`Istnieją też opcje niehormonalne.`],
+meno_p1:[`Hormone therapy – benefit and risk`,`Hormonbehandling – fordele og risici`,`العلاج الهرموني – الفوائد والمخاطر`,`Hormon tedavisi – fayda ve risk`,`Hormonoterapia – korzyści i ryzyko`],
+cyc_s1:[`Mild discomfort is common; severe pain is not “normal” and should be investigated.`,`Lette gener er almindelige; kraftige smerter er ikke “normale” og bør undersøges.`,`الانزعاج الخفيف شائع، أما الألم الشديد فليس «طبيعيًا» ويجب فحصه.`,`Hafif rahatsızlık yaygındır; şiddetli ağrı “normal” değildir ve araştırılmalıdır.`,`Lekki dyskomfort jest częsty; silny ból nie jest „normalny” i wymaga diagnostyki.`],
+cyc_s2:[`A symptom diary over 2–3 cycles makes diagnosis easier.`,`En symptomdagbog over 2–3 cyklusser letter diagnosen.`,`تسهّل يوميات الأعراض خلال 2–3 دورات عملية التشخيص.`,`2–3 döngü boyunca tutulan belirti günlüğü tanıyı kolaylaştırır.`,`Dziennik objawów z 2–3 cykli ułatwia diagnozę.`],
+cyc_s3:[`Warning signs: very heavy bleeding, pain that stops you from daily life.`,`Advarselstegn: meget kraftig blødning, smerter der stopper dig i hverdagen.`,`علامات التحذير: نزيف غزير جدًا، أو ألم يمنعكِ من ممارسة حياتكِ اليومية.`,`Uyarı işaretleri: çok yoğun kanama, günlük yaşamı engelleyen ağrı.`,`Sygnały alarmowe: bardzo obfite krwawienie, ból uniemożliwiający codzienne funkcjonowanie.`],
+cyc_p1:[`Period pain and everyday life`,`Menstruationssmerter og hverdagen`,`آلام الدورة والحياة اليومية`,`Adet ağrısı ve günlük yaşam`,`Bóle menstruacyjne a codzienność`],
+retracted:[`✕ retracted`,`✕ trukket tilbage`,`✕ مسحوبة`,`✕ geri çekildi`,`✕ wycofane`],
+retNote:[`This paper has been retracted and should not be used as evidence. Retraction notice:`,`Denne artikel er trukket tilbage og bør ikke bruges som evidens. Tilbagetrækningsnotits:`,`تم سحب هذه الورقة ولا ينبغي استخدامها كدليل علمي. إشعار السحب:`,`Bu makale geri çekilmiştir ve kanıt olarak kullanılmamalıdır. Geri çekme bildirimi:`,`Ta praca została wycofana i nie powinna być używana jako dowód. Informacja o wycofaniu:`],
+pubmed:[`View on PubMed`,`Se på PubMed`,`عرض في PubMed`,`PubMed'de görüntüle`,`Zobacz w PubMed`],
+prepTitle:[`Prepare for a doctor's visit`,`Forbered lægebesøg`,`التحضير لزيارة الطبيب`,`Doktor ziyaretine hazırlık`,`Przygotowanie do wizyty u lekarza`],
+prepLead:[`Fill in the form beforehand. You get a clear summary to print or show.`,`Udfyld formularen på forhånd. Du får et tydeligt resumé, du kan printe eller vise.`,`املئي النموذج مسبقًا لتحصلي على ملخص واضح يمكن طباعته أو عرضه.`,`Formu önceden doldur. Yazdırabileceğin veya gösterebileceğin net bir özet alırsın.`,`Wypełnij formularz wcześniej. Otrzymasz czytelne podsumowanie do wydruku lub pokazania.`],
+fm_cycle:[`Cycle & pain`,`Cyklus & smerter`,`الدورة والألم`,`Döngü ve ağrı`,`Cykl i ból`],
+fm_pcos:[`Suspected PCOS`,`Mistanke om PCOS`,`اشتباه بـ PCOS`,`PCOS şüphesi`,`Podejrzenie PCOS`],
+fm_gen:[`General visit`,`Generel samtale`,`زيارة عامة`,`Genel görüşme`,`Wizyta ogólna`],
+q_pain:[`Pain intensity (0–10)`,`Smertestyrke (0–10)`,`شدة الألم (0–10)`,`Ağrı şiddeti (0–10)`,`Nasilenie bólu (0–10)`],
+q_when:[`When does the pain occur?`,`Hvornår opstår smerterne?`,`متى يحدث الألم؟`,`Ağrı ne zaman oluşuyor?`,`Kiedy pojawia się ból?`],
+o_before:[`Before my period`,`Før menstruation`,`قبل الدورة`,`Adetten önce`,`Przed miesiączką`],
+o_during:[`During my period`,`Under menstruation`,`أثناء الدورة`,`Adet sırasında`,`Podczas miesiączki`],
+o_ovul:[`Ovulation`,`Ægløsning`,`الإباضة`,`Yumurtlama`,`Owulacja`],
+o_sex:[`During sex`,`Under sex`,`أثناء الجماع`,`Cinsel ilişki sırasında`,`Podczas seksu`],
+o_urine:[`When urinating`,`Ved vandladning`,`عند التبول`,`İdrar yaparken`,`Przy oddawaniu moczu`],
+o_stool:[`During bowel movements`,`Ved afføring`,`عند التبرز`,`Dışkılama sırasında`,`Przy wypróżnianiu`],
+o_const:[`Constant`,`Konstant`,`مستمر`,`Sürekli`,`Stały`],
+q_bleed:[`Bleeding`,`Blødning`,`النزيف`,`Kanama`,`Krwawienie`],
+o_heavy:[`Very heavy (soaking through in under 2 hours)`,`Meget kraftig (gennemvædet på under 2 timer)`,`غزير جدًا (تتشبّع الفوطة في أقل من ساعتين)`,`Çok yoğun (2 saatten kısa sürede ıslanıyor)`,`Bardzo obfite (przesiąka w mniej niż 2 godziny)`],
+o_spot:[`Spotting between periods`,`Pletblødninger mellem menstruationer`,`نزيف بين الدورات`,`Adetler arası lekelenme`,`Plamienia między miesiączkami`],
+o_clots:[`Large clots`,`Store blodpropper`,`جلطات دموية كبيرة`,`Büyük pıhtılar`,`Duże skrzepy`],
+o_irreg:[`Irregular`,`Uregelmæssig`,`غير منتظمة`,`Düzensiz`,`Nieregularne`],
+q_len:[`Cycle length in days (approx.)`,`Cykluslængde i dage (ca.)`,`طول الدورة بالأيام (تقريبًا)`,`Döngü uzunluğu (gün, yaklaşık)`,`Długość cyklu w dniach (ok.)`],
+q_since:[`How long have you had these symptoms?`,`Hvor længe har du haft symptomerne?`,`منذ متى ظهرت هذه الأعراض؟`,`Bu belirtiler ne zamandır var?`,`Od jak dawna masz te objawy?`],
+q_tried:[`What have you already tried?`,`Hvad har du allerede prøvet?`,`ماذا جرّبتِ حتى الآن؟`,`Şimdiye kadar neler denedin?`,`Co już próbowałaś?`],
+q_goal:[`What matters most for the doctor to understand?`,`Hvad er vigtigst, at lægen forstår?`,`ما أهم ما تريدين أن يفهمه الطبيب؟`,`Doktorun en çok neyi anlaması önemli?`,`Co jest najważniejsze, żeby lekarz zrozumiał?`],
+q_obs:[`Observations`,`Observationer`,`ملاحظات`,`Gözlemler`,`Obserwacje`],
+o_irrc:[`Irregular or missing cycle`,`Uregelmæssig eller udeblivende cyklus`,`دورة غير منتظمة أو غائبة`,`Düzensiz veya gelmeyen döngü`,`Nieregularny lub brak cyklu`],
+o_hair:[`Excess body hair`,`Øget behåring`,`شعر زائد في الجسم`,`Aşırı tüylenme`,`Nadmierne owłosienie`],
+o_acne:[`Acne`,`Akne`,`حب الشباب`,`Akne`,`Trądzik`],
+o_loss:[`Hair loss`,`Hårtab`,`تساقط الشعر`,`Saç dökülmesi`,`Wypadanie włosów`],
+o_weight:[`Weight gain`,`Vægtøgning`,`زيادة الوزن`,`Kilo alımı`,`Przyrost masy ciała`],
+o_tired:[`Fatigue`,`Træthed`,`إرهاق`,`Yorgunluk`,`Zmęczenie`],
+o_baby:[`Wish to conceive`,`Ønske om graviditet`,`رغبة في الحمل`,`Çocuk isteği`,`Chęć zajścia w ciążę`],
+q_lmp:[`Last period (date)`,`Seneste menstruation (dato)`,`آخر دورة (التاريخ)`,`Son adet (tarih)`,`Ostatnia miesiączka (data)`],
+q_fam:[`Family history (diabetes, PCOS …)`,`Familiehistorie (diabetes, PCOS …)`,`التاريخ العائلي (سكري، PCOS …)`,`Aile öyküsü (diyabet, PCOS …)`,`Wywiad rodzinny (cukrzyca, PCOS …)`],
+q_ask:[`Questions for the doctor`,`Spørgsmål til lægen`,`أسئلة للطبيب`,`Doktora sorular`,`Pytania do lekarza`],
+q_load:[`How much do the symptoms affect you? (0–10)`,`Hvor meget belaster symptomerne dig? (0–10)`,`إلى أي مدى تؤثر الأعراض عليكِ؟ (0–10)`,`Belirtiler seni ne kadar etkiliyor? (0–10)`,`Jak bardzo objawy cię obciążają? (0–10)`],
+q_main:[`Main complaint in your own words`,`Hovedproblem med dine egne ord`,`الشكوى الرئيسية بكلماتكِ`,`Ana şikâyet, kendi sözlerinle`,`Główna dolegliwość własnymi słowami`],
+q_meds:[`Medication / contraception`,`Medicin / prævention`,`الأدوية / وسائل منع الحمل`,`İlaçlar / korunma`,`Leki / antykoncepcja`],
+q_want:[`I would like …`,`Jeg ønsker …`,`أرغب في …`,`İstediğim …`,`Chciałabym …`],
+o_exam:[`An examination`,`En undersøgelse`,`إجراء فحص`,`Bir muayene`,`Badania`],
+o_second:[`A second opinion`,`En second opinion`,`رأيًا طبيًا ثانيًا`,`İkinci bir görüş`,`Drugiej opinii`],
+o_ref:[`A referral to a specialist`,`Henvisning til speciallæge`,`إحالة إلى أخصائي`,`Uzmana sevk`,`Skierowania do specjalisty`],
+o_written:[`A written summary`,`Et skriftligt resumé`,`ملخصًا مكتوبًا`,`Yazılı bir özet`,`Pisemnego podsumowania`],
+o_serious:[`A serious investigation`,`En seriøs udredning`,`تقييمًا جادًا للحالة`,`Ciddi bir araştırma`,`Poważnej diagnostyki`],
+gen:[`Create summary`,`Opret resumé`,`إنشاء الملخص`,`Özet oluştur`,`Utwórz podsumowanie`],
+cpy:[`Copy`,`Kopiér`,`نسخ`,`Kopyala`,`Kopiuj`],
+cpd:[`Copied ✓`,`Kopieret ✓`,`تم النسخ ✓`,`Kopyalandı ✓`,`Skopiowano ✓`],
+prt:[`Print`,`Print`,`طباعة`,`Yazdır`,`Drukuj`],
+sumHead:[`SUMMARY FOR MY DOCTOR'S VISIT`,`RESUMÉ TIL MIT LÆGEBESØG`,`ملخص لزيارتي الطبية`,`DOKTOR ZİYARETİM İÇİN ÖZET`,`PODSUMOWANIE NA WIZYTĘ U LEKARZA`],
+sumEnd:[`I ask for a serious investigation and an explanation of the next steps.`,`Jeg beder om en seriøs udredning og en forklaring af de næste skridt.`,`أطلب تقييمًا جادًا للحالة وشرحًا للخطوات القادمة.`,`Ciddi bir değerlendirme ve sonraki adımların açıklanmasını rica ediyorum.`,`Proszę o poważną diagnostykę i wyjaśnienie kolejnych kroków.`],
+mapTitle:[`Doctor map`,`Lægekort`,`خريطة الأطباء`,`Doktor haritası`,`Mapa lekarzy`],
+mapLead:[`Recommended by women. Filter by condition and read their experiences.`,`Anbefalet af kvinder. Filtrér efter tilstand og læs deres erfaringer.`,`موصى بهم من نساء. صفّي حسب الحالة واقرئي تجاربهن.`,`Kadınlar tarafından önerildi. Duruma göre filtrele ve deneyimleri oku.`,`Polecani przez kobiety. Filtruj według schorzenia i czytaj doświadczenia.`],
+shareExp:[`Share your experience`,`Del din erfaring`,`شاركي تجربتكِ`,`Deneyimini paylaş`,`Podziel się doświadczeniem`],
+publish:[`Publish`,`Udgiv`,`نشر`,`Yayınla`,`Opublikuj`],
+sp_gyn:[`Gynaecologist`,`Gynækolog`,`طبيبة نساء وتوليد`,`Kadın doğum uzmanı`,`Ginekolożka`],
+sp_endoc:[`Endocrinology`,`Endokrinologi`,`الغدد الصماء`,`Endokrinoloji`,`Endokrynologia`],
+sp_meno:[`Menopause clinic`,`Overgangsalder-klinik`,`عيادة سنّ اليأس`,`Menopoz kliniği`,`Poradnia menopauzy`],
+sp_endoz:[`Endometriosis centre`,`Endometriosecenter`,`مركز بطانة الرحم المهاجرة`,`Endometriozis merkezi`,`Centrum endometriozy`],
+rv1:[`Took more than 45 minutes for me and never questioned me. After years, finally a referral.`,`Brugte over 45 minutter på mig og stillede aldrig spørgsmålstegn ved mig. Efter flere år endelig en henvisning.`,`خصّصت لي أكثر من 45 دقيقة ولم تشكّك بكلامي أبدًا. وبعد سنوات حصلتُ أخيرًا على إحالة.`,`Bana 45 dakikadan fazla zaman ayırdı, hiç sorgulamadı. Yıllar sonra nihayet bir sevk aldım.`,`Poświęciła mi ponad 45 minut i nigdy nie podważała moich słów. Po latach wreszcie skierowanie.`],
+rv2:[`Very empathetic, explains every option.`,`Meget empatisk, forklarer alle muligheder.`,`متعاطفة جدًا وتشرح كل الخيارات.`,`Çok empatik, tüm seçenekleri anlatıyor.`,`Bardzo empatyczna, wyjaśnia każdą opcję.`],
+rv3:[`PCOS was finally taken seriously, clear lab work-up.`,`PCOS blev endelig taget alvorligt, tydelig laboratorieudredning.`,`أخيرًا أُخذ PCOS على محمل الجد، مع فحوصات مخبرية واضحة.`,`PCOS sonunda ciddiye alındı, net laboratuvar incelemesi.`,`PCOS wreszcie potraktowano poważnie, jasna diagnostyka laboratoryjna.`],
+rv4:[`Great explanations, no time pressure.`,`Fremragende forklaringer, intet tidspres.`,`شرح ممتاز دون أي استعجال.`,`Harika açıklamalar, zaman baskısı yok.`,`Świetne wyjaśnienia, bez pośpiechu.`],
+rv5:[`Helped in a structured way with an unfulfilled wish for a child.`,`Hjalp struktureret ved uopfyldt børneønske.`,`ساعدتني بشكل منظم في موضوع تأخر الحمل.`,`İstenen çocuğun olmaması konusunda düzenli şekilde yardımcı oldu.`,`Pomogła w uporządkowany sposób przy niespełnionym pragnieniu dziecka.`],
+rv6:[`Finally someone who doesn't brush off hot flushes.`,`Endelig én, der ikke affejer hedeture.`,`أخيرًا شخص لا يستهين بالهبات الساخنة.`,`Sonunda sıcak basmalarını önemsiz görmeyen biri.`,`Wreszcie ktoś, kto nie bagatelizuje uderzeń gorąca.`],
+rv7:[`Specialised ultrasound, very competent.`,`Specialiseret ultralyd, meget kompetent.`,`فحص بالموجات فوق الصوتية المتخصصة، كفاءة عالية جدًا.`,`Uzman ultrason, çok yetkin.`,`Specjalistyczne USG, bardzo kompetentna.`],
+rv8:[`For the first time I felt understood.`,`For første gang følte jeg mig forstået.`,`شعرتُ لأول مرة بأنني مفهومة.`,`İlk kez anlaşıldığımı hissettim.`,`Pierwszy raz poczułam się zrozumiana.`],
+chatLead:[`Exchange with women who understand you. You appear under a pseudonym.`,`Udveksl med kvinder, der forstår dig. Du optræder under et pseudonym.`,`تبادلي الحديث مع نساء يفهمنكِ. تظهرين باسم مستعار.`,`Seni anlayan kadınlarla paylaş. Takma adla görünürsün.`,`Rozmawiaj z kobietami, które cię rozumieją. Występujesz pod pseudonimem.`],
+chatPh:[`Write a message…`,`Skriv en besked…`,`اكتبي رسالة…`,`Bir mesaj yaz…`,`Napisz wiadomość…`],
+send:[`Send`,`Send`,`إرسال`,`Gönder`,`Wyślij`],
+posts:[`posts`,`opslag`,`مشاركات`,`gönderi`,`wpisów`],
+gr_cyc:[`Cycle & everyday life`,`Cyklus & hverdag`,`الدورة والحياة اليومية`,`Döngü ve günlük yaşam`,`Cykl i codzienność`],
+c1:[`Has anyone tried inositol?`,`Har nogen erfaring med inositol?`,`هل جرّبت إحداكنّ الإينوزيتول؟`,`İnositol deneyen var mı?`,`Czy ktoś próbował inozytolu?`],
+c2:[`Yes, it stabilised my cycle after about 3 months.`,`Ja, det stabiliserede min cyklus efter ca. 3 måneder.`,`نعم، ثبّت دورتي بعد نحو 3 أشهر.`,`Evet, yaklaşık 3 ayda döngümü düzenledi.`,`Tak, ustabilizował mój cykl po ok. 3 miesiącach.`],
+c3:[`How did you get to a diagnosis?`,`Hvordan nåede I frem til en diagnose?`,`كيف وصلتنّ إلى التشخيص؟`,`Tanıya nasıl ulaştınız?`,`Jak doszłyście do diagnozy?`],
+c4:[`Keep a symptom diary and look for a specialist centre.`,`Før en symptomdagbog og find et specialiseret center.`,`دوّني يوميات الأعراض وابحثي عن مركز متخصص.`,`Belirti günlüğü tut ve uzman bir merkez ara.`,`Prowadź dziennik objawów i poszukaj ośrodka specjalistycznego.`],
+c5:[`We've been trying for 8 months – when did you get checked?`,`Vi har prøvet i 8 måneder – hvornår fik I det undersøgt?`,`نحاول منذ 8 أشهر – متى أجريتنّ الفحوصات؟`,`8 aydır deniyoruz – siz ne zaman kontrol yaptırdınız?`,`Staramy się od 8 miesięcy – kiedy się zbadałyście?`],
+c6:[`Sleep problems are the worst part for me. Tips?`,`Søvnproblemer er det værste for mig. Tips?`,`مشاكل النوم هي الأسوأ بالنسبة لي. أي نصائح؟`,`Benim için en kötüsü uyku sorunları. Önerisi olan?`,`Najgorsze są u mnie problemy ze snem. Jakieś wskazówki?`],
+c7:[`What helps with period pain at work?`,`Hvad hjælper mod menstruationssmerter på arbejdet?`,`ما الذي يخفف آلام الدورة في العمل؟`,`İşte adet ağrısına ne iyi geliyor?`,`Co pomaga na bóle miesiączkowe w pracy?`],
+docTitle:[`Dr. Support Group`,`Læge-supportgruppe`,`مجموعة دعم الأطباء`,`Doktor Destek Grubu`,`Grupa wsparcia lekarzy`],
+docLead:[`Doctors and professionals who voluntarily answer outside office hours – e.g. to help you assess useful examinations.`,`Læger og fagfolk, der frivilligt svarer uden for åbningstid – fx for at hjælpe med at vurdere relevante undersøgelser.`,`أطباء ومختصون يردّون طوعًا خارج أوقات الدوام – مثلًا لمساعدتكِ في تقييم الفحوصات المناسبة.`,`Mesai dışında gönüllü olarak yanıt veren doktorlar ve uzmanlar – örneğin hangi tetkiklerin yararlı olacağını değerlendirmek için.`,`Lekarze i specjaliści, którzy dobrowolnie odpowiadają po godzinach – np. pomagają ocenić sensowne badania.`],
+docAlert:[`Not an emergency channel. For acute symptoms: 1813 (medical helpline) or 112.`,`Ikke en nødkanal. Ved akutte symptomer: 1813 (Lægevagten) eller 112.`,`ليست قناة طوارئ. في الحالات الحادة: 1813 (خط الرعاية الطبية) أو 112.`,`Acil kanal değildir. Akut belirtilerde: 1813 (tıbbi yardım hattı) veya 112.`,`To nie jest kanał alarmowy. Przy ostrych objawach: 1813 (dyżur lekarski) lub 112.`],
+pr_gyn:[`Gynaecology · Endometriosis`,`Gynækologi · Endometriose`,`أمراض النساء · بطانة الرحم المهاجرة`,`Jinekoloji · Endometriozis`,`Ginekologia · Endometrioza`],
+pr_endo:[`Endocrinology · PCOS`,`Endokrinologi · PCOS`,`الغدد الصماء · PCOS`,`Endokrinoloji · PCOS`,`Endokrynologia · PCOS`],
+pr_meno:[`Menopause`,`Overgangsalder`,`سنّ اليأس`,`Menopoz`,`Menopauza`],
+pr_mid:[`Midwife · Cycle · Fertility`,`Jordemoder · Cyklus · Fertilitet`,`قابلة · الدورة · الخصوبة`,`Ebe · Döngü · Doğurganlık`,`Położna · Cykl · Płodność`],
+av1:[`Mon–Thu 7–9 pm`,`man–tor 19–21`,`الإثنين–الخميس 19–21`,`Pzt–Per 19–21`,`pn–czw 19–21`],
+av2:[`Tue & Thu 8–10 pm`,`tirs & tors 20–22`,`الثلاثاء والخميس 20–22`,`Sal ve Per 20–22`,`wt i czw 20–22`],
+av3:[`Sat 10 am–12 pm`,`lør 10–12`,`السبت 10–12`,`Cmt 10–12`,`sob 10–12`],
+av4:[`Daily 6–8 pm`,`dagligt 18–20`,`يوميًا 18–20`,`Her gün 18–20`,`codziennie 18–20`],
+midwife:[`Midwife`,`Jordemoder`,`قابلة`,`Ebe`,`Położna`],
+on:[`Available now`,`Tilgængelig nu`,`متاحة الآن`,`Şu an müsait`,`Dostępna teraz`],
+off:[`Currently offline`,`Offline lige nu`,`غير متصلة حاليًا`,`Şu an çevrimdışı`,`Obecnie offline`],
+reqTitle:[`Send a request`,`Send en forespørgsel`,`إرسال طلب`,`Talep gönder`,`Wyślij zapytanie`],
+reqTo:[`To`,`Til`,`إلى`,`Kime`,`Do`],
+reqQ:[`Your question`,`Dit spørgsmål`,`سؤالكِ`,`Sorun`,`Twoje pytanie`],
+reqPh:[`e.g. I've had severe period pain for 2 years. Which examination should I bring up?`,`fx Jeg har haft kraftige menstruationssmerter i 2 år. Hvilken undersøgelse bør jeg nævne?`,`مثلًا: أعاني من آلام دورة شديدة منذ سنتين. أي فحص يجب أن أطلبه؟`,`örn. 2 yıldır şiddetli adet ağrım var. Hangi tetkiki istemeliyim?`,`np. Od 2 lat mam silne bóle miesiączkowe. O jakie badanie powinnam poprosić?`],
+reqSend:[`Send request`,`Send forespørgsel`,`إرسال الطلب`,`Talebi gönder`,`Wyślij zapytanie`],
+pend:[`Awaiting reply`,`Afventer svar`,`بانتظار الرد`,`Yanıt bekleniyor`,`Oczekuje na odpowiedź`],
+toWord:[`To`,`Til`,`إلى`,`Kime:`,`Do`]
+};
+let LI=Math.max(0,LANGS.findIndex(l=>l[0]===store.get('lang','en')));
+const t=k=>{const a=D[k];return a?(a[LI]||a[0]):k};
+function applyStatic(){
+  const L=LANGS[LI];
+  document.documentElement.lang=L[0]; document.documentElement.dir=L[0]==='ar'?'rtl':'ltr';
+  document.querySelectorAll('[data-i]').forEach(e=>e.textContent=t(e.dataset.i));
+  document.querySelectorAll('[data-ph]').forEach(e=>e.placeholder=t(e.dataset.ph));
+  document.title='B Heard';
+  ['#langLogin','#langTop','#langNav'].forEach(s=>{const x=$(s);if(x)x.value=L[0]});
+}
+function setLang(code){
+  LI=LANGS.findIndex(l=>l[0]===code); store.set('lang',code);
+  applyStatic();
+  if(sessionStorage.getItem('in')){renderAll(); if(map) drawDocs(); renderNavLabels()}
+}
+function langSelect(id){
+  const s=el(`<select class="langsel" id="${id}" aria-label="Language">${LANGS.map(l=>`<option value="${l[0]}">${l[1]}</option>`).join('')}</select>`);
+  s.onchange=()=>setLang(s.value); return s;
+}
+['langLogin','langTop'].forEach(id=>{const o=$('#'+id);o.replaceWith(langSelect(id))});
+
+/* ---------- LOGIN ---------- */
+function validCPR(raw){
+  const d=raw.replace(/\D/g,''); if(d.length!==10) return false;
+  const dd=+d.slice(0,2), mm=+d.slice(2,4), yy=+d.slice(4,6);
+  if(mm<1||mm>12||dd<1) return false;
+  return dd<=new Date(2000+yy,mm,0).getDate();
+}
+$('#cpr').addEventListener('input',e=>{
+  let d=e.target.value.replace(/\D/g,'').slice(0,10);
+  e.target.value=d.length>6?d.slice(0,6)+'-'+d.slice(6):d;
+});
+async function sha(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+$('#loginBtn').onclick=async()=>{
+  const v=$('#cpr').value;
+  if(!validCPR(v)) return $('#cprErr').textContent=t('cprBad');
+  if(!$('#consent').checked) return $('#cprErr').textContent=t('cprConsent');
+  const h=await sha(v.replace(/\D/g,'')); // only a hash, never plain text
+  store.set('user',{id:h.slice(0,10),alias:store.get('user',{}).alias||pickAlias(h)});
+  sessionStorage.setItem('in','1'); enter();
+};
+const ALIAS=['Sage','Poppy','Lavender','Birch','Clover','Thistle','Juniper','Rosemary'];
+const pickAlias=h=>ALIAS[parseInt(h.slice(0,4),16)%ALIAS.length]+' '+(parseInt(h.slice(4,8),16)%90+10);
+
+/* ---------- NAV ---------- */
+const icons={
+ home:'<path d="M3 11l9-8 9 8v9a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1z"/>',
+ know:'<path d="M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2zM4 19a2 2 0 012-2h13"/>',
+ prep:'<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/>',
+ map:'<path d="M12 21s-7-6.2-7-11a7 7 0 0114 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+ chat:'<path d="M4 5h16v11H9l-5 4z"/>',
+ doc:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>'
+};
+const VIEWS=['home','know','prep','map','chat','doc'];
+VIEWS.forEach(id=>{
+  const b=el(`<button data-v="${id}"><svg viewBox="0 0 24 24">${icons[id]}</svg><span></span></button>`);
+  b.onclick=()=>go(id); $('#nav').appendChild(b);
+});
+const nl=el('<div class="nav-lang"></div>'); nl.appendChild(langSelect('langNav')); $('#nav').appendChild(nl);
+function renderNavLabels(){document.querySelectorAll('nav button[data-v]').forEach(b=>b.querySelector('span').textContent=t('nav_'+b.dataset.v))}
+function go(id){
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('on',v.id==='v-'+id));
+  document.querySelectorAll('nav button[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===id));
+  window.scrollTo(0,0);
+  if(id==='map'){initMap();setTimeout(()=>map.invalidateSize(),50)}
+  if(id==='chat')renderMsgs();
+}
+
+/* ---------- MOOD TRACKER ---------- */
+const MOOD_ICONS=['☀','◐','☁','≈','◌'];
+const dkey=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+let selDay=dkey(new Date());
+function renderMoods(){
+  const moods=store.get('moods',{}), todayK=dkey(new Date());
+  if(!moods[todayK]&&moods[todayK]!==0){}
+  $('#moods').innerHTML=''; 
+  const cur=moods[selDay];
+  MOOD_ICONS.forEach((ic,i)=>{
+    const b=el(`<button class="mood ${cur===i?'on':''}"><b>${ic}</b>${t('m'+(i+1))}</button>`);
+    b.onclick=()=>{moods[selDay]=i;store.set('moods',moods);renderMoods()};
+    $('#moods').appendChild(b);
+  });
+  $('#moodReply').textContent=cur!==undefined?t('r'+(cur+1)):'';
+  const days=[...Array(7)].map((_,n)=>{const d=new Date();d.setDate(d.getDate()-(6-n));return d});
+  const counts={}; days.forEach(d=>{const m=moods[dkey(d)];if(m!==undefined)counts[m]=(counts[m]||0)+1});
+  const top=Object.keys(counts).sort((a,b)=>counts[b]-counts[a])[0];
+  const wrap=$('#tracker'); wrap.className='tracker';
+  wrap.innerHTML=`<h3>${t('trackTitle')}</h3><div class="week"></div>
+   <p class="muted" style="margin-top:.7rem">${top!==undefined?`${t('trackMostly')} <b>${t('m'+(+top+1))}</b> ${MOOD_ICONS[top]}`:t('trackHint')}</p>`;
+  days.forEach(d=>{
+    const k=dkey(d), m=moods[k];
+    const c=el(`<button class="day ${m!==undefined?'has':''} ${k===selDay?'sel':''}"><i>${m!==undefined?MOOD_ICONS[m]:''}</i><span>${k===todayK?t('trackToday'):d.toLocaleDateString(LANGS[LI][2],{weekday:'short'})}</span></button>`);
+    c.onclick=()=>{selDay=k;renderMoods()};
+    wrap.querySelector('.week').appendChild(c);
+  });
+}
+
+/* ---------- HOME ---------- */
+function renderHome(){
+  const u=store.get('user',{}), h=new Date().getHours();
+  $('#greet').textContent=t(h<11?'g_morning':h<18?'g_day':'g_eve')+', '+u.alias+'.';
+  $('#dateLine').textContent=new Date().toLocaleDateString(LANGS[LI][2],{weekday:'long',day:'numeric',month:'long'});
+  renderMoods();
+  $('#tiles').innerHTML='';
+  [['know','nav_know','t_know'],['prep','t_prepName','t_prep'],['map','mapTitle','t_map'],['chat','nav_chat','t_chat'],['doc','nav_doc','t_doc']].forEach(([id,a,b])=>{
+    const x=el(`<button class="tile"><h3>${t(a)}</h3><span>${t(b)}</span></button>`);x.onclick=()=>go(id);$('#tiles').appendChild(x)});
+}
+
+/* ---------- KNOWLEDGE ---------- */
+const TOPICS={endo:{p:[
+ {cit:'Amini L, Chekini R, Nateghi MR, Haghani H, Jamialahmadi T, Sathyapalan T, Sahebkar A. The Effect of Combined Vitamin C and Vitamin E Supplementation on Oxidative Stress Markers in Women with Endometriosis: A Randomized, Triple-Blind Placebo-Controlled Clinical Trial. Pain Res Manag. 2021 May 26;2021:5529741.',doi:'10.1155/2021/5529741',pmid:'34122682',pmc:'PMC8172324'},
+ {cit:'Varney JE, So D, Gibson PR, Rhys-Jones D, Lee YSJ, Fisher J, Moore JS, Ratner R, Morrison M, Burgell RE, Muir JG. Clinical Trial: Effect of a 28-Day Low FODMAP Diet on Gastrointestinal Symptoms Associated With Endometriosis (EndoFOD)-A Randomised, Controlled Crossover Feeding Study. Aliment Pharmacol Ther. 2025 Jun;61(12):1889-1903.',doi:'10.1111/apt.70161',pmid:'40319391',pmc:'PMC12107219'}
+]},pcos:{p:[
+ {cit:'Fruzzetti F, Perini D, Russo M, Bucci F, Gadducci A. Comparison of two insulin sensitizers, metformin and myo-inositol, in women with polycystic ovary syndrome (PCOS). Gynecol Endocrinol. 2017 Jan;33(1):39-42.',doi:'10.1080/09513590.2016.1236078',pmid:'27808588'},
+ {cit:'Nordio M, Basciani S, Camajani E. The 40:1 myo-inositol/D-chiro-inositol plasma ratio is able to restore ovulation in PCOS patients: comparison with other ratios. Eur Rev Med Pharmacol Sci. 2019 Jun;23(12):5512-5521.',doi:'10.26355/eurrev_201906_18223',pmid:'31298405'}
+]},fert:{p:[
+ {cit:'Xu Y, Nisenblat V, Lu C, Li R, Qiao J, Zhen X, Wang S. Pretreatment with coenzyme Q10 improves ovarian response and embryo quality in low-prognosis young women with decreased ovarian reserve: a randomized controlled trial. Reprod Biol Endocrinol. 2018 Mar 27;16(1):29.',doi:'10.1186/s12958-018-0343-0',pmid:'29587861',pmc:'PMC5870379'},
+ {cit:'Wise LA, Wang TR, Stanford JB, Wesselink AK, Ncube CN, Rothman KJ, Murray EJ. A randomized trial of web-based fertility-tracking software and fecundability. Fertil Steril. 2023 Jun;119(6):1045-1056.',doi:'10.1016/j.fertnstert.2023.02.005',pmid:'36774978',pmc:'PMC10225320'}
+]},meno:{p:[
+ {cit:'Gopal S, Ajgaonkar A, Kanchi P, Kaundinya A, Thakare V, Chauhan S, Langade D. Effect of an ashwagandha (Withania Somnifera) root extract on climacteric symptoms in women during perimenopause: A randomized, double-blind, placebo-controlled study. J Obstet Gynaecol Res. 2021 Dec;47(12):4414-4425.',doi:'10.1111/jog.15030',pmid:'34553463'},
+ {cit:'Korovljev D, Ostojic J, Panic J, Ranisavljev M, Todorovic N, Nedeljkovic D, Kuzmanovic J, Vranes M, Stajer V, Ostojic SM. The Effects of 8-Week Creatine Hydrochloride and Creatine Ethyl Ester Supplementation on Cognition, Clinical Outcomes, and Brain Creatine Levels in Perimenopausal and Menopausal Women (CONCRET-MENOPA): A Randomized Controlled Trial. J Am Nutr Assoc. 2026 Mar-Apr;45(3):199-210.',doi:'10.1080/27697061.2025.2551184',pmid:'40854087'},
+ {cit:'Isenmann E, Kaluza D, Havers T, Elbeshausen A, Geisler S, Hofmann K, Flenker U, Diel P, Gavanda S. Resistance training alters body composition in middle-aged women depending on menopause - A 20-week control trial. BMC Womens Health. 2023 Oct 6;23(1):526.',doi:'10.1186/s12905-023-02671-y',pmid:'37803287',pmc:'PMC10559623'},
+ {cit:'Genazzani AR, Monteleone P, Giannini A, Simoncini T. Hormone therapy in the postmenopausal years: considering benefits and risks in clinical practice. Hum Reprod Update. 2021 Oct 18;27(6):1115-1150.',doi:'10.1093/humupd/dmab026',pmid:'34432008'}
+]},cyc:{p:[]}};
+let topic='endo';
+function renderKnow(){
+  $('#topicChips').innerHTML='';
+  Object.keys(TOPICS).forEach(k=>{const c=el(`<button class="chip ${k===topic?'on':''}">${t('tp_'+k)}</button>`);c.onclick=()=>{topic=k;renderKnow()};$('#topicChips').appendChild(c)});
+  $('#topicBody').innerHTML=`<div class="card summary"><h3>${t('overview')}: ${t('tp_'+topic)}</h3><ul>${[1,2,3].map(i=>`<li>${t(topic+'_s'+i)}</li>`).join('')}</ul></div>
+  ${TOPICS[topic].p.length?`<h3 style="margin-top:1.4rem">${t('studies')}</h3>`:''}`+TOPICS[topic].p.map(p=>p.cit?realPaper(p):`<div class="paper"><span class="tag o">${t('verified')}</span><h3>${t('ex')} ${t(p[0])}</h3><div class="muted">${t(p[1])} · ${p[2]}</div></div>`).join('');
+}
+
+function realPaper(p){
+  const e=x=>String(x).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  return `<div class="paper">${p.ret?`<span class="tag" style="background:#E9C4C4;color:#8A1F1F">${t('retracted')}</span>`:`<span class="tag o">${t('verified')}</span>`}
+  <p style="font-size:.95rem;margin-top:.3rem">${e(p.cit)}</p>
+  ${p.ret?`<p style="font-size:.88rem;color:#8A1F1F;margin-top:.3rem">${t('retNote')} ${e(p.ret)}</p>`:''}
+  <div class="muted" style="margin-top:.3rem">DOI: ${e(p.doi)} · PMID: ${e(p.pmid)}${p.pmc?` · PMCID: ${e(p.pmc)}`:''} · <a href="https://pubmed.ncbi.nlm.nih.gov/${e(p.pmid)}/" target="_blank" rel="noopener" style="color:var(--orange)">${t('pubmed')}</a></div></div>`;
+}
+
+/* ---------- PREP FORMS ---------- */
+const FORMS={
+ cycle:[['range','q_pain','pain'],['multi','q_when','when',['o_before','o_during','o_ovul','o_sex','o_urine','o_stool','o_const']],['multi','q_bleed','bleed',['o_heavy','o_spot','o_clots','o_irreg']],['text','q_len','cyc'],['text','q_since','since'],['text','q_tried','tried'],['area','q_goal','goal']],
+ pcos:[['multi','q_obs','obs',['o_irrc','o_hair','o_acne','o_loss','o_weight','o_tired','o_baby']],['text','q_lmp','lmp'],['area','q_fam','fam'],['area','q_ask','goal']],
+ gen:[['range','q_load','pain'],['area','q_main','main'],['text','q_meds','meds'],['multi','q_want','want',['o_exam','o_second','o_ref','o_written','o_serious']]]
+};
+let formKey='cycle';
+function renderForm(){
+  $('#formChips').innerHTML='';
+  Object.keys(FORMS).forEach(k=>{const c=el(`<button class="chip ${k===formKey?'on':''}">${t('fm_'+k)}</button>`);c.onclick=()=>{formKey=k;renderForm()};$('#formChips').appendChild(c)});
+  const saved=store.get('form_'+formKey,{});
+  $('#formBody').innerHTML='';
+  FORMS[formKey].forEach(([ty,label,id,opts])=>{
+    let h=`<div><label>${t(label)}</label>`;
+    if(ty==='range')h+=`<input type="range" min="0" max="10" id="f_${id}" value="${saved[id]??5}"><div class="muted" id="fv_${id}">${saved[id]??5} / 10</div>`;
+    if(ty==='text')h+=`<input type="text" id="f_${id}" value="${saved[id]||''}">`;
+    if(ty==='area')h+=`<textarea rows="3" id="f_${id}">${saved[id]||''}</textarea>`;
+    if(ty==='multi')h+=`<div class="opts">${opts.map(o=>`<label><input type="checkbox" data-g="${id}" value="${o}" ${(saved[id]||[]).includes(o)?'checked':''}>${t(o)}</label>`).join('')}</div>`;
+    $('#formBody').appendChild(el(h+'</div>'));
+  });
+  document.querySelectorAll('input[type=range]').forEach(r=>r.oninput=()=>$('#fv_'+r.id.slice(2)).textContent=r.value+' / 10');
+  $('#formOut').innerHTML='';
+}
+$('#genBtn').onclick=()=>{
+  const data={}, lines=[];
+  FORMS[formKey].forEach(([ty,label,id])=>{
+    let v;
+    if(ty==='multi')v=[...document.querySelectorAll(`[data-g=${id}]:checked`)].map(x=>x.value);
+    else v=$('#f_'+id).value;
+    data[id]=v;
+    if(ty==='range')lines.push(`• ${t(label)}: ${v}`);
+    else if(ty==='multi'){if(v.length)lines.push(`• ${t(label)}: ${v.map(t).join(', ')}`)}
+    else if(v&&v.trim())lines.push(`• ${t(label)}: ${v}`);
+  });
+  store.set('form_'+formKey,data);
+  const txt=`${t('sumHead')}\n${t('fm_'+formKey)} · ${new Date().toLocaleDateString(LANGS[LI][2])}\n\n${lines.join('\n')}\n\n${t('sumEnd')}`;
+  $('#formOut').innerHTML=`<div class="out"></div><div style="display:flex;gap:.6rem;margin-top:.8rem"><button class="btn ghost sm" id="cpy">${t('cpy')}</button><button class="btn ghost sm" onclick="window.print()">${t('prt')}</button></div>`;
+  $('#formOut .out').textContent=txt;
+  $('#cpy').onclick=()=>{navigator.clipboard?.writeText(txt);$('#cpy').textContent=t('cpd')};
+};
+
+/* ---------- MAP ---------- */
+const KEYS=['all','endo','pcos','fert','meno','cyc'];
+const DOCS=[
+ {n:'Dr. Maria Holm',s:'sp_gyn',c:'Copenhagen',ll:[55.6826,12.5700],k:['endo','cyc'],r:4.9,rv:['rv1','rv2']},
+ {n:'Dr. Sofie Lindqvist',s:'sp_endoc',c:'Frederiksberg',ll:[55.6786,12.5340],k:['pcos','fert'],r:4.8,rv:['rv3','rv4']},
+ {n:'Dr. Anna Nygaard',s:'sp_gyn',c:'Østerbro',ll:[55.7040,12.5800],k:['fert','cyc'],r:4.7,rv:['rv5']},
+ {n:'Dr. Katrine Bruun',s:'sp_meno',c:'Aarhus',ll:[56.1572,10.2107],k:['meno'],r:4.9,rv:['rv6']},
+ {n:'Dr. Louise Mikkelsen',s:'sp_endoz',c:'Odense',ll:[55.4038,10.4024],k:['endo','pcos'],r:4.8,rv:['rv7','rv8']}
+];
+let map,markers=[],mapKey='all',curDoc=null;
+function initMap(){
+  renderMapChips();
+  if(map)return;
+  map=L.map('map').setView([55.9,11.3],7);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
+  drawDocs();
+}
+function renderMapChips(){
+  $('#mapChips').innerHTML='';
+  KEYS.forEach(k=>{const c=el(`<button class="chip ${k===mapKey?'on':''}">${k==='all'?t('tp_all'):t('tp_'+k)}</button>`);c.onclick=()=>{mapKey=k;renderMapChips();drawDocs()};$('#mapChips').appendChild(c)});
+}
+const stars=r=>'★'.repeat(Math.round(r))+'☆'.repeat(5-Math.round(r));
+function drawDocs(){
+  if(!map)return;
+  renderMapChips();
+  markers.forEach(m=>map.removeLayer(m)); markers=[];
+  const list=DOCS.filter(d=>mapKey==='all'||d.k.includes(mapKey));
+  $('#drList').innerHTML='';
+  list.forEach(d=>{
+    const m=L.circleMarker(d.ll,{radius:10,color:'#8F3E13',fillColor:'#B4521E',fillOpacity:.9,weight:2}).addTo(map);
+    m.on('click',()=>showDoc(d)); markers.push(m);
+    const row=el(`<div class="dr"><h3>${d.n} <span class="stars">${stars(d.r)}</span></h3><div class="muted">${t(d.s)} · ${d.c}</div><div style="margin-top:.4rem">${d.k.map(k=>`<span class="tag">${t('tp_'+k)}</span>`).join('')}</div></div>`);
+    row.onclick=()=>{showDoc(d);map.setView(d.ll,12)}; $('#drList').appendChild(row);
+  });
+  if(list.length)map.fitBounds(L.latLngBounds(list.map(d=>d.ll)).pad(.4),{maxZoom:11});
+  if(curDoc&&list.includes(curDoc))showDoc(curDoc,true); else {curDoc=null;$('#drDetail').style.display='none'}
+}
+function showDoc(d,noScroll){
+  curDoc=d;
+  const extra=store.get('rev_'+d.n,[]);
+  const box=$('#drDetail'); box.style.display='block';
+  box.innerHTML=`<h3>${d.n}</h3><div class="muted">${t(d.s)} · ${d.c}</div><div class="stars" style="margin:.3rem 0">${stars(d.r)} <span class="muted">${d.r}</span></div>
+   <div>${d.k.map(k=>`<span class="tag o">${t('tp_'+k)}</span>`).join('')}</div>
+   ${[...d.rv.map(t),...extra].map(r=>`<div class="review"></div>`).join('')}
+   <label>${t('shareExp')}</label><textarea rows="2" id="newRv"></textarea>
+   <button class="btn sm" style="margin-top:.6rem" id="rvBtn">${t('publish')}</button>`;
+  box.querySelectorAll('.review').forEach((n,i)=>n.textContent='“'+[...d.rv.map(t),...extra][i]+'”');
+  $('#rvBtn').onclick=()=>{const v=$('#newRv').value.trim();if(!v)return;extra.push(v);store.set('rev_'+d.n,extra);showDoc(d)};
+  if(!noScroll)box.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+/* ---------- CHAT ---------- */
+const GROUPS={
+ pcos:[['Birch 21','c1'],['Clover 48','c2']],
+ endo:[['Poppy 12','c3'],['Thistle 33','c4']],
+ fert:[['Rosemary 77','c5']],
+ meno:[['Juniper 64','c6']],
+ cyc:[['Lavender 52','c7']]
+};
+let grp='pcos';
+const gname=g=>g==='cyc'?t('gr_cyc'):t('tp_'+g);
+function renderGroups(){
+  $('#groups').innerHTML='';
+  Object.keys(GROUPS).forEach(g=>{
+    const n=GROUPS[g].length+store.get('chat_'+g,[]).length;
+    const b=el(`<button class="group ${g===grp?'on':''}">${gname(g)}<small>${n} ${t('posts')}</small></button>`);
+    b.onclick=()=>{grp=g;renderMsgs()};$('#groups').appendChild(b);
+  });
+}
+function renderMsgs(){
+  renderGroups();
+  const me=store.get('user',{}).alias;
+  const all=[...GROUPS[grp].map(([a,k])=>[a,t(k)]),...store.get('chat_'+grp,[])];
+  const box=$('#msgs'); box.innerHTML='';
+  all.forEach(([a,x])=>{const m=el(`<div class="msg ${a===me?'me':''}"><small></small><span></span></div>`);m.querySelector('small').textContent=a;m.querySelector('span').textContent=x;box.appendChild(m)});
+  box.scrollTop=box.scrollHeight;
+}
+function sendMsg(){
+  const v=$('#chatIn').value.trim(); if(!v)return;
+  const arr=store.get('chat_'+grp,[]); arr.push([store.get('user',{}).alias,v]); store.set('chat_'+grp,arr);
+  $('#chatIn').value=''; renderMsgs();
+}
+$('#chatSend').onclick=sendMsg; $('#chatIn').addEventListener('keydown',e=>{if(e.key==='Enter')sendMsg()});
+
+/* ---------- DR SUPPORT ---------- */
+const PROS=[
+ ['MH','Dr. Maria Holm','pr_gyn',true,'av1'],
+ ['SL','Dr. Sofie Lindqvist','pr_endo',true,'av2'],
+ ['KB','Dr. Katrine Bruun','pr_meno',false,'av3'],
+ ['JA','Jonna Andersen','pr_mid',true,'av4']
+];
+function renderDoc(){
+  $('#pros').innerHTML=PROS.map(p=>`<div class="pro"><div class="avatar">${p[0]}</div><div style="flex:1"><h3>${p[1]}</h3><div class="muted">${t(p[2])}</div><div class="muted"><span class="dot ${p[3]?'':'off'}"></span>${t(p[3]?'on':'off')} · ${t(p[4])}</div></div></div>`).join('');
+  $('#pros .pro').style.borderTop='0';
+  const cur=$('#reqTo').value;
+  $('#reqTo').innerHTML=PROS.map(p=>`<option>${p[1]}</option>`).join(''); if(cur)$('#reqTo').value=cur;
+  $('#reqOut').innerHTML='';
+  store.get('requests',[]).forEach(r=>{
+    const d=el(`<div class="review"><b></b> · <span class="muted"></span><br><span class="q"></span><br><span class="tag" style="margin-top:.4rem">${t('pend')}</span></div>`);
+    d.querySelector('b').textContent=t('toWord')+' '+r.to; d.querySelector('.muted').textContent=r.at; d.querySelector('.q').textContent=r.txt;
+    $('#reqOut').appendChild(d);
+  });
+}
+$('#reqBtn').onclick=()=>{
+  const txt=$('#reqTxt').value.trim(); if(!txt)return;
+  const a=store.get('requests',[]); a.unshift({to:$('#reqTo').value,txt,at:new Date().toLocaleString(LANGS[LI][2])}); store.set('requests',a);
+  $('#reqTxt').value=''; renderDoc();
+};
+
+/* ---------- BOOT ---------- */
+function renderAll(){renderHome();renderKnow();renderForm();renderDoc();renderMsgs();renderNavLabels()}
+function enter(){
+  $('#login').style.display='none'; $('#app').style.display='block';
+  renderAll(); go('home');
+}
+applyStatic();
+if(sessionStorage.getItem('in')&&store.get('user'))enter();
+</script>
+</body>
+</html>
