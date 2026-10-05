@@ -436,7 +436,7 @@ function applyStatic(){
 function setLang(code){
   LI=LANGS.findIndex(l=>l[0]===code); store.set('lang',code);
   applyStatic();
-  if(sessionStorage.getItem('in')){renderAll(); if(map) drawDocs(); renderNavLabels()}
+  if($('#app').style.display==='block'){renderAll(); if(map) drawDocs(); renderNavLabels()}
 }
 function langSelect(id){
   const s=el(`<select class="langsel" id="${id}" aria-label="Language">${LANGS.map(l=>`<option value="${l[0]}">${l[1]}</option>`).join('')}</select>`);
@@ -720,7 +720,13 @@ function enter(){
   renderAll(); go('home');
 }
 applyStatic();
-if(sessionStorage.getItem('in')&&store.get('user'))enter();
+// DEMO MODE: skips the CPR login so the prototype can be shown freely.
+// Set to false to require the CPR login again. Add ?login=1 to the URL to preview the login screen in demo mode.
+const DEMO_MODE=true;
+if(DEMO_MODE&&!/[?&]login=1/.test(location.search)){
+  if(!store.get('user'))store.set('user',{id:'demo',alias:'Guest'});
+  enter();
+}else if(sessionStorage.getItem('in')&&store.get('user'))enter();
 </script>
 </body>
 </html>
